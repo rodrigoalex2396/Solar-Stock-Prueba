@@ -1,0 +1,34 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0a0e2e"/>
+      <stop offset="50%" stop-color="#0d1f4e"/>
+      <stop offset="100%" stop-color="#1a2d6e"/>
+    </linearGradient>
+    <linearGradient id="letter" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4ade80"/>
+      <stop offset="50%" stop-color="#22d3ee"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+    <linearGradient id="bolt" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde68a"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow2">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- Fondo con esquinas redondeadas -->
+  <rect width="512" height="512" rx="110" fill="url(#bg)"/>
+  <!-- Arco decorativo exterior -->
+  <path d="M 80 420 A 220 220 0 1 1 432 420" fill="none" stroke="url(#letter)" stroke-width="8" stroke-linecap="round" opacity="0.5"/>
+  <!-- Letra R -->
+  <text x="90" y="370" font-family="Arial Black, sans-serif" font-size="310" font-weight="900" fill="url(#letter)" filter="url(#glow)" opacity="0.95">R</text>
+  <!-- Rayo encima -->
+  <polygon points="310,110 255,260 295,260 250,400 380,220 320,220" fill="url(#bolt)" filter="url(#glow2)" opacity="0.95"/>
+</svg>
