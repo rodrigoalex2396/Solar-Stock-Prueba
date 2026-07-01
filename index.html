@@ -1,0 +1,1575 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1d1040">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SolarStock">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-512.svg">
+<title>SolarStock</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body { font-family: system-ui, -apple-system, sans-serif; background: #080c14; color: #e0e0e0; display: flex; flex-direction: column; }
+.header { padding: 14px 16px 0; flex-shrink: 0; display: flex; justify-content: space-between; align-items: flex-start; }
+.header h1 { font-size: 20px; font-weight: 800; background: linear-gradient(90deg,#60a5fa,#34d399); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.header p { font-size: 11px; color: #555; margin-top: 2px; }
+.header-right { text-align: right; }
+.resumen-semana { font-size: 11px; color: #60a5fa; margin-top: 2px; }
+.content { flex: 1; overflow-y: auto; padding: 14px 16px; padding-bottom: 90px; }
+.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #0d1117; border-top: 1px solid #1e2530; display: flex; z-index: 100; padding-bottom: env(safe-area-inset-bottom); }
+.nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px 2px 8px; border: none; background: none; color: #3d4f63; font-size: 9px; font-weight: 500; cursor: pointer; gap: 3px; transition: color .15s; }
+.nav-btn .icon { font-size: 18px; line-height: 1; }
+.nav-btn.active { color: #60a5fa; }
+.section { display: none; }
+.section.active { display: block; }
+
+/* TOAST DESHACER */
+.toast-undo { position: fixed; bottom: 90px; left: 16px; right: 16px; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; z-index: 300; transform: translateY(20px); opacity: 0; transition: all .25s; pointer-events: none; }
+.toast-undo.show { transform: translateY(0); opacity: 1; pointer-events: all; }
+.toast-undo span { font-size: 13px; color: #cbd5e1; }
+.toast-undo button { background: none; border: none; color: #60a5fa; font-size: 14px; font-weight: 700; cursor: pointer; padding: 4px 8px; }
+
+/* STOCK */
+.stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+.stat-card { border-radius: 16px; padding: 14px; border: none; position: relative; overflow: hidden; }
+.stat-card::before { content:''; position:absolute; inset:0; opacity:.12; border-radius:16px; }
+.stat-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; font-weight:600; opacity:.8; }
+.stat-card .mat-icon { font-size: 28px; line-height:1; margin-bottom:6px; display:block; }
+.stat-card .qty { font-size: 32px; font-weight: 800; line-height: 1; cursor: pointer; }
+.stat-card .unit { font-size: 11px; margin-top: 3px; opacity:.6; }
+.stat-card .stock-min { font-size: 10px; margin-top: 5px; opacity:.5; }
+.stat-card.low .qty { animation: pulse-warn 1.5s infinite; }
+@keyframes pulse-warn { 0%,100%{opacity:1} 50%{opacity:.6} }
+.card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+
+/* ALERTAS */
+.alert-banner { background: #1a0808; border: 1px solid #7f1d1d; border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; font-size: 13px; color: #f87171; display: none; }
+.alert-banner.visible { display: block; }
+
+/* CARDS */
+.card { background: #0d1117; border: 1px solid #1e2530; border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
+.card h3 { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 12px; }
+.form-group { margin-bottom: 11px; }
+.form-group label { font-size: 11px; color: #4a6080; display: block; margin-bottom: 5px; text-transform: uppercase; letter-spacing: .04em; font-weight:600; }
+input, select, textarea { width: 100%; background: #080c14; border: 1px solid #1e2530; border-radius: 10px; padding: 11px 13px; color: #e0e0e0; font-size: 16px; outline: none; appearance: none; -webkit-appearance: none; font-family: inherit; }
+textarea { resize: none; height: 70px; font-size: 14px; }
+input:focus, select:focus, textarea:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
+select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 13px center; padding-right: 34px; }
+.btn { width: 100%; padding: 13px; border-radius: 12px; border: none; font-size: 15px; font-weight: 600; cursor: pointer; text-align: center; }
+.btn:active { opacity: .8; }
+.btn-row { display: flex; gap: 10px; margin-top: 4px; }
+.btn-row .btn { flex: 1; }
+.btn-primary { background: linear-gradient(135deg,#1d4ed8,#2563eb); color: #fff; box-shadow: 0 4px 12px rgba(37,99,235,.3); }
+.btn-entrada { background: #052e16; color: #4ade80; border: 1px solid #14532d; }
+.btn-salida { background: #2d1212; color: #f87171; border: 1px solid #7f1d1d; }
+.btn-export { background: #0d1117; color: #ccc; border: 1px solid #1e2530; margin-bottom: 10px; text-align: left; padding: 13px 15px; font-size: 14px; }
+.btn-pdf { background: #0c1a3a; color: #60a5fa; border: 1px solid #1d4ed8; }
+.btn-del { background: none; border: none; color: #ef4444; font-size: 18px; padding: 4px 8px; cursor: pointer; line-height: 1; }
+.search-row { display: flex; gap: 8px; margin-bottom: 12px; }
+.search-row input { flex: 1; font-size: 14px; }
+.search-row select { max-width: 115px; font-size: 14px; }
+.msg { font-size: 13px; padding: 11px 13px; border-radius: 10px; margin-bottom: 11px; display: none; font-weight: 500; }
+.msg.ok { background: #052e16; color: #4ade80; display: block; }
+.msg.err { background: #2d1212; color: #f87171; display: block; }
+
+/* MODAL */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 200; align-items: flex-end; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: #0d1117; border: 1px solid #1e2530; border-radius: 20px 20px 0 0; padding: 22px 18px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; }
+.modal h4 { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+.modal p { font-size: 13px; color: #4a6080; margin-bottom: 18px; line-height: 1.5; }
+.modal-btns { display: flex; flex-direction: column; gap: 9px; }
+.btn-si { background: #052e16; color: #4ade80; border: 1px solid #14532d; padding: 13px; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.btn-no { background: #2d1212; color: #f87171; border: 1px solid #7f1d1d; padding: 13px; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.btn-cancelar { background: #0d1117; color: #4a6080; border: 1px solid #1e2530; padding: 13px; border-radius: 12px; font-size: 14px; cursor: pointer; }
+
+/* MOVIMIENTOS */
+.mov-list { display: flex; flex-direction: column; gap: 8px; }
+.mov-item { background: #0d1117; border: 1px solid #1e2530; border-radius: 12px; padding: 11px 13px; display: flex; align-items: flex-start; gap: 10px; }
+.mov-left { flex: 1; min-width: 0; }
+.mov-mat { font-weight: 700; color: #fff; font-size: 14px; }
+.mov-nota { font-size: 12px; color: #4a6080; margin-top: 3px; }
+.mov-meta { display: flex; align-items: center; gap: 8px; margin-top: 5px; flex-wrap: wrap; }
+.mov-fecha { font-size: 11px; color: #3d4f63; }
+.mov-cant { font-size: 12px; font-weight: 700; color: #60a5fa; }
+.mov-tec { font-size: 11px; color: #34d399; }
+.mov-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; }
+.badge { display: inline-block; padding: 3px 9px; border-radius: 99px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.badge-entrada { background: #052e16; color: #4ade80; border: 1px solid #14532d; }
+.badge-salida { background: #2d1212; color: #f87171; border: 1px solid #7f1d1d; }
+
+/* RESUMEN SEMANAL */
+.semana-card { background: #0d1117; border: 1px solid #1e3a5f; border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
+.semana-title { font-size: 12px; color: #60a5fa; font-weight: 700; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .05em; }
+.semana-row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; border-bottom: 1px solid #111827; }
+.semana-row:last-child { border-bottom: none; }
+
+/* TABS INTERNOS */
+.inner-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+.inner-tab { padding: 7px 14px; border-radius: 99px; font-size: 13px; font-weight: 500; border: 1px solid #1e2530; background: #0d1117; color: #4a6080; cursor: pointer; }
+.inner-tab.active { background: linear-gradient(135deg,#1d4ed8,#2563eb); border-color: #1d4ed8; color: #fff; }
+
+/* FECHA FILTER */
+.fecha-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.fecha-row input { flex: 1; font-size: 13px; padding: 9px 12px; }
+
+/* FAB + MENU RAPIDO */
+.fab { position: fixed; right: 20px; bottom: 80px; width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg,#1d4ed8,#2563eb); border: none; color: #fff; font-size: 28px; cursor: pointer; z-index: 150; box-shadow: 0 4px 20px rgba(37,99,235,.5); display: flex; align-items: center; justify-content: center; transition: transform .15s; }
+.fab:active { transform: scale(.93); }
+.fab-menu { position: fixed; right: 16px; bottom: 148px; display: flex; flex-direction: column; gap: 10px; z-index: 149; pointer-events: none; opacity: 0; transform: translateY(10px); transition: opacity .2s, transform .2s; }
+.fab-menu.open { pointer-events: all; opacity: 1; transform: translateY(0); }
+.fab-item { display: flex; align-items: center; gap: 10px; justify-content: flex-end; }
+.fab-label { background: #0d1117; border: 1px solid #1e2530; padding: 8px 14px; border-radius: 99px; font-size: 13px; font-weight: 500; color: #e0e0e0; white-space: nowrap; }
+.fab-icon { width: 44px; height: 44px; border-radius: 50%; border: none; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.fab-icon:active { opacity: .8; }
+.fab-overlay { position: fixed; inset: 0; z-index: 148; display: none; }
+.fab-overlay.open { display: block; }
+
+/* MODAL GRANDE */
+.modal-grande { background: #0d1117; border: 1px solid #1e2530; border-radius: 20px 20px 0 0; padding: 20px 16px; width: 100%; max-width: 480px; max-height: 92vh; overflow-y: auto; }
+.modal-grande h4 { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 16px; }
+.items-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+.item-row { background: #080c14; border: 1px solid #1e2530; border-radius: 12px; padding: 12px; position: relative; }
+.item-row-top { display: flex; gap: 8px; align-items: flex-start; }
+.item-row-top select { flex: 1; font-size: 14px; padding: 9px 10px; }
+.item-row-top input { width: 70px; font-size: 14px; padding: 9px 10px; }
+.item-row-del { background: none; border: none; color: #ef4444; font-size: 18px; cursor: pointer; padding: 4px; flex-shrink: 0; }
+.item-sn { margin-top: 8px; }
+.item-sn input { font-size: 14px; padding: 9px 12px; }
+.btn-add-item { width: 100%; padding: 11px; border-radius: 10px; border: 1px dashed #1e3a5f; background: none; color: #60a5fa; font-size: 14px; cursor: pointer; margin-bottom: 4px; }
+.foto-preview { width: 100%; max-height: 180px; object-fit: cover; border-radius: 10px; border: 1px solid #2a2a2a; }
+.foto-thumb { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; border: 1px solid #2a2a2a; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>⚡ SolarStock</h1>
+    <p>Gestión de insumos</p>
+  </div>
+  <div class="header-right">
+    <div id="resumen-header" class="resumen-semana"></div>
+  </div>
+</div>
+
+<div class="content">
+  <div id="msg" class="msg"></div>
+  <div id="alert-banner" class="alert-banner"></div>
+
+  <!-- STOCK -->
+  <div class="section active" id="tab-resumen">
+    <div class="stat-grid" id="stat-grid"></div>
+    <div class="card">
+      <h3>Nuevo insumo</h3>
+      <div class="form-group"><label>Nombre</label><input type="text" id="nuevo-nombre" placeholder="Ej: FUSIBLE_10A" autocapitalize="characters" /></div>
+      <div class="form-group"><label>Emoji</label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px" id="emoji-picker">
+          <input type="hidden" id="nuevo-emoji" value="📦">
+        </div>
+      </div>
+      <div class="form-group"><label>Stock inicial</label><input type="number" id="nuevo-qty" min="0" value="0" inputmode="numeric" /></div>
+      <div class="form-group"><label>Alerta si baja de (opcional)</label><input type="number" id="nuevo-min" min="0" placeholder="Ej: 2" inputmode="numeric" /></div>
+      <button class="btn btn-primary" onclick="agregarInsumo()">Agregar insumo</button>
+    </div>
+  </div>
+
+  <!-- MOVIMIENTO -->
+  <div class="section" id="tab-movimiento">
+    <div class="card">
+      <h3>Registrar movimiento</h3>
+      <div id="msg-mov" class="msg"></div>
+      <div class="form-group"><label>Insumo</label><select id="mov-material" onchange="toggleCamposExtra()"></select></div>
+      <div class="form-group"><label>Cantidad</label><input type="number" id="mov-cantidad" min="1" value="1" inputmode="numeric" /></div>
+      <div class="form-group" id="sn-group" style="display:none"><label>Número de Serie (N/S)</label><input type="text" id="mov-sn" placeholder="Ej: 102459103698" /></div>
+      <div class="form-group"><label>Fecha</label><input type="date" id="mov-fecha" /></div>
+      <div class="form-group"><label>Técnico responsable (opcional)</label><input type="text" id="mov-tecnico" placeholder="Ej: Rodrigo" /></div>
+      <div class="form-group"><label>Notas (opcional)</label><input type="text" id="mov-notas" placeholder="Ej: Instalado en planta X" /></div>
+      <div class="btn-row">
+        <button class="btn btn-entrada" onclick="registrarMov('ENTRADA')">↓ Entrada</button>
+        <button class="btn btn-salida" onclick="registrarMov('SALIDA')">↑ Salida</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORIAL -->
+  <div class="section" id="tab-historial">
+    <div class="search-row">
+      <input type="text" id="search-hist" placeholder="Buscar..." oninput="renderHistorial()" />
+      <select id="filter-tipo" onchange="renderHistorial()">
+        <option value="">Todos</option>
+        <option value="ENTRADA">Entradas</option>
+        <option value="SALIDA">Salidas</option>
+      </select>
+    </div>
+    <div class="fecha-row">
+      <input type="date" id="fecha-desde" onchange="renderHistorial()" />
+      <input type="date" id="fecha-hasta" onchange="renderHistorial()" />
+    </div>
+    <div class="mov-list" id="tabla-historial"></div>
+  </div>
+
+  <!-- PLANTAS -->
+  <div class="section" id="tab-instalaciones">
+    <div class="inner-tabs">
+      <button class="inner-tab active" onclick="showInnerTab('ver')">Ver plantas</button>
+      <button class="inner-tab" onclick="showInnerTab('agregar')">+ Agregar</button>
+    </div>
+    <div id="inner-ver">
+      <div class="search-row">
+        <input type="text" id="search-inst" placeholder="Buscar planta o material..." oninput="renderInstalaciones()" />
+      </div>
+      <div id="tabla-instalaciones"></div>
+    </div>
+    <div id="inner-agregar" style="display:none">
+      <div class="card" style="text-align:center;padding:24px 16px">
+        <div style="font-size:32px;margin-bottom:8px">🌵</div>
+        <div style="font-size:14px;color:#ccc;margin-bottom:16px">Registrar instalación en una planta</div>
+        <button class="btn btn-primary" onclick="abrirFormInstalacion(null)">+ Nueva instalación</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESUMEN -->
+  <div class="section" id="tab-resumen-sem">
+    <div class="semana-card" id="semana-entradas"></div>
+    <div class="semana-card" id="semana-salidas"></div>
+    <div class="semana-card" id="semana-stock"></div>
+  </div>
+
+  <!-- EXPORTAR -->
+  <div class="section" id="tab-exportar">
+    <div class="card">
+      <h3>Descargar datos</h3>
+      <button class="btn btn-export" onclick="descargarStockCSV()">📥 Stock actual (.csv)</button>
+      <button class="btn btn-export" onclick="descargarCSV()">📥 Historial de movimientos (.csv)</button>
+      <button class="btn btn-export" onclick="descargarInstalacionesCSV()">📥 Instalaciones (.csv)</button>
+      <button class="btn btn-export btn-pdf" onclick="descargarPDF()">🖨 Reporte completo (PDF)</button>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <h3>💾 Respaldo y restauración</h3>
+      <p style="font-size:13px;color:#666;margin-bottom:14px;line-height:1.5">Guarda un respaldo completo de stock, historial e instalaciones. <strong>No incluye las fotos</strong> (esas se guardan aparte en el dispositivo para no llenar el respaldo). Si borras algo por error, puedes restaurarlo desde el archivo.</p>
+      <button class="btn btn-export" style="border-color:#60a5fa;color:#60a5fa" onclick="exportarRespaldo()">💾 Guardar respaldo (datos)</button>
+      <div style="margin-top:10px">
+        <label style="font-size:12px;color:#666;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px">Restaurar desde respaldo</label>
+        <input type="file" id="input-restaurar" accept=".json" style="font-size:13px;padding:8px" onchange="importarRespaldo(this)" />
+      </div>
+      <div id="msg-restaurar" class="msg" style="margin-top:10px"></div>
+    </div>
+    <div class="card" style="margin-top:12px;border-color:#7f1d1d">
+      <h3 style="color:#f87171">⚠ Zona peligrosa</h3>
+      <p style="font-size:13px;color:#4a6080;margin-bottom:14px;line-height:1.5">Borra todos los datos de la aplicación y vuelve al estado inicial. Útil para comenzar desde cero. <strong>Esta acción no se puede deshacer.</strong></p>
+      <button class="btn" style="background:#2d1212;color:#f87171;border:1px solid #7f1d1d" onclick="resetearApp()">🗑 Borrar todo y comenzar de nuevo</button>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <h3>📷 Respaldo de fotos (opcional)</h3>
+      <p style="font-size:13px;color:#666;margin-bottom:14px;line-height:1.5">Las fotos viven en este dispositivo y navegador. Si vas a cambiar de celular o borrar el navegador, exporta un respaldo de fotos para no perderlas. Este archivo puede ser pesado según cuántas fotos tengas.</p>
+      <button class="btn btn-export" style="border-color:#34d399;color:#34d399" onclick="exportarRespaldoFotos()">📷 Exportar fotos</button>
+      <div style="margin-top:10px">
+        <label style="font-size:12px;color:#666;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px">Restaurar fotos</label>
+        <input type="file" id="input-restaurar-fotos" accept=".json" style="font-size:13px;padding:8px" onchange="importarRespaldoFotos(this)" />
+      </div>
+      <div id="msg-restaurar-fotos" class="msg" style="margin-top:10px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ASISTENTE DE BIENVENIDA -->
+<div class="modal-overlay" id="modal-bienvenida" style="z-index:600;align-items:center;padding:20px">
+  <div style="background:#0d1117;border:1px solid #1e2530;border-radius:20px;padding:28px 20px;width:100%;max-width:400px;text-align:center">
+    <div style="font-size:48px;margin-bottom:12px">⚡</div>
+    <div style="font-size:20px;font-weight:800;color:#fff;margin-bottom:6px">Bienvenido a SolarStock</div>
+    <div style="font-size:13px;color:#4a6080;margin-bottom:24px;line-height:1.6">¿Cómo quieres comenzar?</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button class="btn btn-primary" onclick="bienvenidaImportar()">📄 Importar desde Excel / CSV</button>
+      <button class="btn" style="background:#052e16;color:#4ade80;border:1px solid #14532d" onclick="bienvenidaVacio()">📝 Comenzar con inventario vacío</button>
+      <button class="btn" style="background:#0c1a3a;color:#60a5fa;border:1px solid #1d4ed8" onclick="bienvenidaRestaurar()">♻ Restaurar respaldo JSON</button>
+    </div>
+    <div style="margin-top:16px">
+      <input type="file" id="bienvenida-file-csv" accept=".csv,.xlsx,.xls" style="display:none" onchange="bienvenidaProcesarCSV(this)" />
+      <input type="file" id="bienvenida-file-json" accept=".json" style="display:none" onchange="bienvenidaProcesarJSON(this)" />
+    </div>
+    <div id="msg-bienvenida" class="msg" style="margin-top:12px;text-align:left"></div>
+  </div>
+</div>
+
+<!-- TOAST DESHACER -->
+<div class="toast-undo" id="toast-undo">
+  <span id="toast-msg">Elemento eliminado</span>
+  <button onclick="deshacerEliminacion()">↩ Deshacer</button>
+</div>
+
+<!-- FAB OVERLAY -->
+<div class="fab-overlay" id="fab-overlay" onclick="cerrarFab()"></div>
+
+<!-- FAB MENU -->
+<div class="fab-menu" id="fab-menu">
+  <div class="fab-item">
+    <span class="fab-label">Eliminar insumo</span>
+    <button class="fab-icon" style="background:#1a0808;border:1px solid #7f1d1d" onclick="cerrarFab();abrirModalEliminarInsumo()">🗑</button>
+  </div>
+  <div class="fab-item">
+    <span class="fab-label">Agregar stock</span>
+    <button class="fab-icon" style="background:#1d4ed8" onclick="cerrarFab();abrirModalStock()">📦</button>
+  </div>
+  <div class="fab-item">
+    <span class="fab-label">Sacar / Entregar insumos</span>
+    <button class="fab-icon" style="background:#7f1d1d" onclick="cerrarFab();abrirModalSalida()">📤</button>
+  </div>
+  <div class="fab-item">
+    <span class="fab-label">Registrar planta</span>
+    <button class="fab-icon" style="background:#065f46" onclick="cerrarFab();abrirFormInstalacion(null)">🌵</button>
+  </div>
+</div>
+
+<!-- FAB BUTTON -->
+<button class="fab" id="fab-btn" onclick="toggleFab()">+</button>
+
+<!-- MODAL DETALLE PRODUCTO -->
+<div class="modal-overlay" id="modal-detalle" style="z-index:400">
+  <div class="modal-grande">
+    <div id="detalle-header" style="text-align:center;margin-bottom:16px"></div>
+    <div id="detalle-cuerpo"></div>
+    <button class="btn" style="background:#0d1117;color:#4a6080;border:1px solid #1e2530;margin-top:12px" onclick="document.getElementById('modal-detalle').classList.remove('open')">Cerrar</button>
+  </div>
+</div>
+
+<!-- MODAL ELIMINAR INSUMO -->
+<div class="modal-overlay" id="modal-eliminar-insumo" style="z-index:400">
+  <div class="modal-grande">
+    <h4>🗑 Eliminar insumo</h4>
+    <p style="font-size:13px;color:#4a6080;margin-bottom:14px">Selecciona el insumo que quieres eliminar del stock.</p>
+    <div id="lista-eliminar-insumos"></div>
+    <button class="btn" style="background:#0d1117;color:#4a6080;border:1px solid #1e2530;margin-top:10px" onclick="cerrarModalEliminarInsumo()">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL SALIDA RAPIDA -->
+<div class="modal-overlay" id="modal-salida">
+  <div class="modal-grande">
+    <h4>📤 Sacar / Entregar insumos</h4>
+    <div class="form-group"><label>Destino / Motivo</label><input type="text" id="sal-destino" placeholder="Ej: Entregado a equipo norte" autocapitalize="words" /></div>
+    <div class="form-group"><label>Fecha</label><input type="date" id="sal-fecha" /></div>
+    <div class="form-group"><label>Técnico (opcional)</label><input type="text" id="sal-tecnico" placeholder="Ej: Rodrigo" /></div>
+    <div class="items-list" id="sal-items"></div>
+    <button class="btn-add-item" onclick="agregarItemSalida()">+ Agregar otro insumo</button>
+    <div class="form-group" style="margin-top:8px">
+      <label>📷 Foto (opcional)</label>
+      <input type="file" id="sal-foto" accept="image/*" capture="environment" style="font-size:13px;padding:8px" onchange="previewFoto('sal-foto','sal-foto-preview')" />
+      <div id="sal-foto-preview" style="margin-top:8px"></div>
+    </div>
+    <div id="msg-sal" class="msg"></div>
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button class="btn btn-salida" onclick="registrarSalidaRapida()">↑ Registrar salida</button>
+      <button class="btn" style="background:#222;color:#888;border:1px solid #333" onclick="cerrarModalSalida()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL INSTALACIÓN ÚNICO (reutilizable desde Plantas y desde +) -->
+<div class="modal-overlay" id="modal-instalacion" style="z-index:400">
+  <div class="modal-grande">
+    <h4 id="inst-modal-titulo">🌵 Registrar instalación</h4>
+    <div id="msg-inst-modal" class="msg"></div>
+    <div class="form-group" id="inst-planta-group">
+      <label>Planta / Proyecto</label>
+      <input type="text" id="inst-planta" placeholder="Ej: SALFA VESPUCIO" autocapitalize="words" />
+    </div>
+    <div class="form-group"><label>Material</label><select id="inst-material" onchange="toggleInstSN()"></select></div>
+    <div class="form-group"><label>Cantidad</label><input type="text" id="inst-cantidad" placeholder="Ej: 1 o 12m" /></div>
+    <div class="form-group" id="inst-sn-group" style="display:none"><label>Número de Serie (N/S)</label><input type="text" id="inst-sn" placeholder="Ej: 102459103698" /></div>
+    <div class="form-group"><label>Observación</label><input type="text" id="inst-notas" placeholder="Ej: Comisionamiento" /></div>
+    <div class="form-group"><label>Fecha</label><input type="date" id="inst-fecha" /></div>
+    <div class="form-group"><label>Técnico (opcional)</label><input type="text" id="inst-tecnico" placeholder="Ej: Rodrigo" /></div>
+    <div class="form-group">
+      <label>📷 Foto (opcional)</label>
+      <input type="file" id="inst-foto" accept="image/*" capture="environment" style="font-size:13px;padding:8px" onchange="previewFoto('inst-foto','inst-foto-preview')" />
+      <div id="inst-foto-preview" style="margin-top:8px"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button class="btn btn-primary" onclick="guardarInstalacion()">✓ Registrar</button>
+      <button class="btn" style="background:#0d1117;color:#4a6080;border:1px solid #1e2530" onclick="cerrarFormInstalacion()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL STOCK RAPIDO -->
+<div class="modal-overlay" id="modal-stock">
+  <div class="modal-grande">
+    <h4>📦 Agregar stock</h4>
+    <div class="items-list" id="rs-items"></div>
+    <button class="btn-add-item" onclick="agregarItemStock()">+ Agregar otro insumo</button>
+    <div class="form-group" style="margin-top:8px"><label>Fecha</label><input type="date" id="rs-fecha" /></div>
+    <div class="form-group"><label>Notas (opcional)</label><input type="text" id="rs-notas" placeholder="Ej: Compra nueva" /></div>
+    <div class="form-group">
+      <label>📷 Foto (opcional)</label>
+      <input type="file" id="rs-foto" accept="image/*" capture="environment" style="font-size:13px;padding:8px" onchange="previewFoto('rs-foto','rs-foto-preview')" />
+      <div id="rs-foto-preview" style="margin-top:8px"></div>
+    </div>
+    <div id="msg-rs" class="msg"></div>
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button class="btn btn-entrada" onclick="registrarStockRapido()">↓ Registrar entrada</button>
+      <button class="btn" style="background:#222;color:#888;border:1px solid #333" onclick="cerrarModalStock()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMACION -->
+<div class="modal-overlay" id="modal-overlay" style="z-index:500">
+  <div class="modal">
+    <h4 id="modal-titulo"></h4>
+    <p id="modal-texto"></p>
+    <div class="modal-btns" id="modal-btns"></div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" onclick="showTab('resumen')" id="nav-resumen"><span class="icon">📦</span><span>Stock</span></button>
+  <button class="nav-btn" onclick="showTab('movimiento')" id="nav-movimiento"><span class="icon">↕️</span><span>Mover</span></button>
+  <button class="nav-btn" onclick="showTab('historial')" id="nav-historial"><span class="icon">📋</span><span>Historial</span></button>
+  <button class="nav-btn" onclick="showTab('instalaciones')" id="nav-instalaciones"><span class="icon">🌵</span><span>Plantas</span></button>
+  <button class="nav-btn" onclick="showTab('resumen-sem')" id="nav-resumen-sem"><span class="icon">📊</span><span>Semana</span></button>
+  <button class="nav-btn" onclick="showTab('exportar')" id="nav-exportar"><span class="icon">📤</span><span>Exportar</span></button>
+</nav>
+
+<script>
+const STORAGE_KEY = 'solarstock_v6';
+const STORAGE_KEY_V5 = 'solarstock_v5';
+
+// Migra datos de v5 a v6 si existen, devuelve true si había datos reales del usuario
+function migrarDesdeV5() {
+  try {
+    const v5 = localStorage.getItem(STORAGE_KEY_V5);
+    if (!v5) return false;
+    const datos = JSON.parse(v5);
+    // Verificar si el usuario tenía datos reales (historial o instalaciones)
+    const tieneHistorial = (datos.historial || []).length > 0;
+    const tieneInstalaciones = (datos.instalaciones || []).length > 0;
+    const tieneStockReal = Object.values(datos.stock || {}).some(v => v > 0);
+    if (tieneHistorial || tieneInstalaciones || tieneStockReal) {
+      // Tiene datos reales → migrar y conservar
+      localStorage.setItem(STORAGE_KEY, v5);
+      localStorage.removeItem(STORAGE_KEY_V5);
+      return true; // datos migrados, no mostrar bienvenida
+    } else {
+      // Solo tenía el estado vacío por defecto → descartar y mostrar bienvenida
+      localStorage.removeItem(STORAGE_KEY_V5);
+      return false;
+    }
+  } catch(e) {
+    return false;
+  }
+}
+const MAT_CON_SN = ['SIM','DONGLE','SMARTLOGGER'];
+
+function fmtFecha(s) {
+  if (!s) return '-';
+  try { return new Date(s).toLocaleDateString('es-CL'); } catch(e) { return s; }
+}
+
+const defaultStock = { SIM:0, DONGLE:0, SMARTLOGGER:0, REGULADOR_TENSION:0, TIMER_DIGITAL:0, ANTENA:0, ROUTER:0, CABLE_COMUNICACION:0 };
+const defaultMin   = {};
+
+const defaultHistorial = [];
+const defaultInstalaciones = [];
+let state;
+
+// Devuelve fecha de hoy en formato YYYY-MM-DD para campos date
+function hoyISO() {
+  const d = new Date();
+  return d.toISOString().slice(0,10);
+}
+
+// Vista detalle al tocar una tarjeta de stock
+function abrirDetalleProducto(mat) {
+  const qty = state.stock[mat];
+  const icon = getIcon(mat);
+  const e = MAT_ESTILOS[mat] || ESTILO_DEFAULT;
+  const movs = state.historial.filter(r => r.material === mat);
+  const entradas = movs.filter(r => r.tipo==='ENTRADA');
+  const salidas  = movs.filter(r => r.tipo==='SALIDA');
+  const totalEnt = entradas.reduce((s,r)=>s+r.cantidad,0);
+  const totalSal = salidas.reduce((s,r)=>s+r.cantidad,0);
+
+  document.getElementById('detalle-header').innerHTML = `
+    <div style="font-size:52px;margin-bottom:6px">${icon}</div>
+    <div style="font-size:18px;font-weight:800;color:#fff">${mat.replace(/_/g,' ')}</div>
+    <div style="font-size:32px;font-weight:800;color:${e.color};margin:8px 0">${qty}</div>
+    <div style="font-size:12px;color:#4a6080">unidades disponibles</div>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:12px">
+      <div style="background:#052e16;border:1px solid #14532d;border-radius:10px;padding:8px 16px;font-size:13px;color:#4ade80">↓ ${totalEnt} entradas</div>
+      <div style="background:#2d1212;border:1px solid #7f1d1d;border-radius:10px;padding:8px 16px;font-size:13px;color:#f87171">↑ ${totalSal} salidas</div>
+    </div>`;
+
+  const filasMov = [...movs].reverse().map(r => `
+    <div style="padding:10px 0;border-bottom:1px solid #1e2530;display:flex;justify-content:space-between;align-items:flex-start">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+          <span class="badge badge-${r.tipo.toLowerCase()}">${r.tipo}</span>
+          <span style="font-size:13px;font-weight:700;color:#fff">× ${r.cantidad}</span>
+        </div>
+        ${r.notas?`<div style="font-size:12px;color:#4a6080;margin-bottom:2px">${r.notas}</div>`:''}
+        <div style="font-size:11px;color:#3d4f63">${fmtFecha(r.fecha)}${r.tecnico?' · 👤 '+r.tecnico:''}</div>
+      </div>
+    </div>`).join('');
+
+  // Instalaciones con este material
+  const insts = state.instalaciones.filter(i => i.material === mat);
+  const filasInst = insts.map(i => `
+    <div style="padding:8px 0;border-bottom:1px solid #1e2530;font-size:13px">
+      <div style="font-weight:600;color:#fff">🌵 ${i.planta}</div>
+      <div style="color:#4a6080;font-size:12px;margin-top:2px">
+        Cant: ${i.cantidad}${i.ns&&i.ns!=='-'?' · N/S: '+i.ns:''}
+        ${i.notas?' · '+i.notas:''}
+        ${i.fecha?' · '+fmtFecha(i.fecha):''}
+      </div>
+    </div>`).join('');
+
+  let cuerpo = '';
+  if (insts.length) cuerpo += `<div style="font-size:12px;color:#34d399;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;margin-top:4px">Plantas instaladas (${insts.length})</div>${filasInst}`;
+  if (movs.length) cuerpo += `<div style="font-size:12px;color:#4a6080;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:12px 0 6px">Historial de movimientos</div>${filasMov}`;
+  if (!cuerpo) cuerpo = `<div style="color:#4a6080;text-align:center;padding:20px">Sin movimientos ni instalaciones registradas</div>`;
+
+  document.getElementById('detalle-cuerpo').innerHTML = cuerpo;
+  document.getElementById('modal-detalle').classList.add('open');
+}
+
+function estadoVacio() {
+  return { stock:{...defaultStock}, minStock:{...defaultMin}, matEmoji:{}, historial:[], instalaciones:[], nextId:1, nextInstId:1 };
+}
+
+function esAppNueva(st) {
+  if (!st) return true;
+  const sinStock = Object.values(st.stock||{}).every(v => v === 0);
+  const sinHistorial = !(st.historial||[]).length;
+  const sinInstalaciones = !(st.instalaciones||[]).length;
+  return sinStock && sinHistorial && sinInstalaciones;
+}
+
+function loadState() {
+  // Intentar migrar datos de versión anterior primero
+  migrarDesdeV5();
+
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      state = JSON.parse(saved);
+      if (!state.minStock) state.minStock = {};
+      if (!state.matEmoji) state.matEmoji = {};
+      if (!state.nextInstId) state.nextInstId = 1;
+    } else {
+      // Primera vez real: no existe nada en localStorage
+      state = estadoVacio();
+      saveState();
+      const hoy = hoyISO();
+      const movFecha = document.getElementById('mov-fecha');
+      if (movFecha) movFecha.value = hoy;
+      initEmojiPicker();
+      renderAll();
+      mostrarBienvenida();
+      return;
+    }
+  } catch(e) {
+    state = estadoVacio();
+    saveState();
+  }
+  const hoy = hoyISO();
+  const movFecha = document.getElementById('mov-fecha');
+  if (movFecha) movFecha.value = hoy;
+  initEmojiPicker();
+  renderAll();
+  migrarFotosViejas();
+}
+
+// Migración: si hay registros antiguos con `foto` (dataURL completo guardado
+// directo en localStorage), los mueve a IndexedDB y los deja como `fotoId`.
+// Esto es automático y solo corre una vez por registro viejo que encuentre.
+async function migrarFotosViejas() {
+  if (!state.historial) return;
+  let migrado = false;
+  for (const mov of state.historial) {
+    if (mov.foto && !mov.fotoId) {
+      const fotoId = 'foto_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+      try {
+        await guardarFotoDB(fotoId, mov.foto);
+        mov.fotoId = fotoId;
+        delete mov.foto;
+        migrado = true;
+      } catch(e) {}
+    }
+  }
+  if (migrado) { saveState(); renderHistorial(); }
+}
+
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+function renderAll() {
+  renderStatGrid();
+  renderSelectMaterial();
+  renderHistorial();
+  renderInstalaciones();
+  renderResumenSemana();
+  renderAlertas();
+  renderHeaderResumen();
+}
+
+function renderAlertas() {
+  const alertas = [];
+  Object.entries(state.stock).forEach(([mat, qty]) => {
+    const min = state.minStock[mat];
+    if (min !== undefined && qty <= min) alertas.push(`⚠️ ${mat.replace(/_/g,' ')}: quedan ${qty} (mín. ${min})`);
+  });
+  const b = document.getElementById('alert-banner');
+  if (alertas.length) { b.innerHTML = alertas.join('<br>'); b.classList.add('visible'); }
+  else { b.classList.remove('visible'); }
+}
+
+function renderHeaderResumen() {
+  const hace7 = new Date(); hace7.setDate(hace7.getDate()-7);
+  const ult = state.historial.filter(r => new Date(r.fecha) >= hace7);
+  const ent = ult.filter(r=>r.tipo==='ENTRADA').reduce((s,r)=>s+r.cantidad,0);
+  const sal = ult.filter(r=>r.tipo==='SALIDA').reduce((s,r)=>s+r.cantidad,0);
+  const plantas = [...new Set(state.instalaciones.map(i=>i.planta))].length;
+  const productos = Object.keys(state.stock).length;
+  const bajos = Object.entries(state.stock).filter(([m,q])=> state.minStock[m]!==undefined && q<=state.minStock[m]).length;
+  const el = document.getElementById('resumen-header');
+  el.innerHTML = [
+    `<span style="color:#60a5fa">📦 ${productos}</span>`,
+    `<span style="color:#34d399">🌵 ${plantas}</span>`,
+    `<span style="color:#4ade80">↓${ent}</span>`,
+    `<span style="color:#f87171">↑${sal}</span>`,
+    bajos ? `<span style="color:#f59e0b">⚠ ${bajos}</span>` : ''
+  ].filter(Boolean).join('<span style="color:#1e2530"> · </span>');
+}
+
+const MAT_ESTILOS = {
+  SIM:               { icon:'📡', bg:'#0f2744', color:'#60a5fa', label:'#93c5fd' },
+  DONGLE:            { icon:'🔌', bg:'#1a0f33', color:'#a78bfa', label:'#c4b5fd' },
+  SMARTLOGGER:       { icon:'🖥️', bg:'#0f2a1a', color:'#34d399', label:'#6ee7b7' },
+  REGULADOR_TENSION: { icon:'⚡', bg:'#2a1f00', color:'#fbbf24', label:'#fcd34d' },
+  TIMER_DIGITAL:     { icon:'⏱️', bg:'#1a1a2e', color:'#818cf8', label:'#a5b4fc' },
+  ANTENA:            { icon:'📶', bg:'#0f2233', color:'#38bdf8', label:'#7dd3fc' },
+  ROUTER:            { icon:'🌐', bg:'#1a2a0f', color:'#86efac', label:'#bbf7d0' },
+  CABLE_COMUNICACION:{ icon:'🔗', bg:'#2a1500', color:'#fb923c', label:'#fdba74' },
+};
+const ESTILO_DEFAULT = { icon:'📦', bg:'#1a1a2a', color:'#e0e0e0', label:'#aaa' };
+const EMOJIS_LISTA = ['📦','🔋','⚡','🔌','📡','🖥️','☀️','🌐','🧰','🔩','🛠️','📷','📶','⏱️','🔗','🖲️','💡','🔦','📟','🛰️','🔧','🗜️'];
+
+// Devuelve el ícono de un material: primero mira emoji custom guardado, luego MAT_ESTILOS, luego default
+function getIcon(mat) {
+  if (state.matEmoji && state.matEmoji[mat]) return state.matEmoji[mat];
+  return (MAT_ESTILOS[mat] || ESTILO_DEFAULT).icon;
+}
+
+function initEmojiPicker() {
+  const picker = document.getElementById('emoji-picker');
+  const hidden = document.getElementById('nuevo-emoji');
+  picker.innerHTML = EMOJIS_LISTA.map(e =>
+    `<button type="button" onclick="selectEmoji('${e}')" id="ep_${e.codePointAt(0)}"
+      style="font-size:22px;background:#111;border:2px solid #1e2530;border-radius:10px;padding:6px 8px;cursor:pointer;transition:border-color .15s">${e}</button>`
+  ).join('') + `<input type="hidden" id="nuevo-emoji" value="📦">`;
+  selectEmoji('📦');
+}
+
+function selectEmoji(e) {
+  document.querySelectorAll('#emoji-picker button').forEach(b => b.style.borderColor='#1e2530');
+  const btn = document.getElementById('ep_'+e.codePointAt(0));
+  if (btn) btn.style.borderColor='#60a5fa';
+  const h = document.getElementById('nuevo-emoji');
+  if (h) h.value = e;
+}
+
+function renderStatGrid() {
+  document.getElementById('stat-grid').innerHTML = Object.entries(state.stock).map(([mat,qty]) => {
+    const min = state.minStock[mat];
+    const critico = min !== undefined && qty <= Math.floor(min/2);
+    const low = min !== undefined && qty <= min && !critico;
+    const e = MAT_ESTILOS[mat] || ESTILO_DEFAULT;
+    const icon = getIcon(mat);
+    const bgColor = critico ? '#2d0a0a' : low ? '#2a1800' : e.bg;
+    const mainColor = critico ? '#f87171' : low ? '#f59e0b' : e.color;
+    return `<div class="stat-card${critico?' critico':low?' low':''}" style="background:${bgColor};color:${mainColor}" onclick="abrirDetalleProducto('${mat}')">
+      <div class="card-top">
+        <span class="label" style="color:${e.label}">${mat.replace(/_/g,' ')}</span>
+      </div>
+      <span class="mat-icon">${icon}</span>
+      <div class="qty" style="color:${mainColor}">${qty}</div>
+      <div class="unit" style="color:${mainColor}">unidades</div>
+      ${min!==undefined ? `<div class="stock-min">Alerta ≤ ${min}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function renderSelectMaterial() {
+  const s = document.getElementById('mov-material'), cur = s.value;
+  const si = document.getElementById('inst-material');
+  const mats = Object.keys(state.stock).map(m=>`<option value="${m}">${getIcon(m)} ${m.replace(/_/g,' ')}</option>`).join('');
+  s.innerHTML = mats; si.innerHTML = mats;
+  if (cur && state.stock[cur]!==undefined) s.value = cur;
+  toggleCamposExtra();
+}
+
+function toggleCamposExtra() {
+  const mat = document.getElementById('mov-material').value;
+  const show = MAT_CON_SN.includes(mat);
+  document.getElementById('sn-group').style.display = show ? 'block' : 'none';
+  if (!show) document.getElementById('mov-sn').value = '';
+}
+
+
+function renderHistorial() {
+  const q=(document.getElementById('search-hist').value||'').toLowerCase();
+  const t=document.getElementById('filter-tipo').value;
+  const desde=document.getElementById('fecha-desde').value;
+  const hasta=document.getElementById('fecha-hasta').value;
+  const rows=[...state.historial].reverse().filter(r => {
+    const matchQ=(r.material+r.tipo+(r.notas||'')+(r.tecnico||'')).toLowerCase().includes(q);
+    const matchT=!t||r.tipo===t;
+    const fecha=new Date(r.fecha);
+    const matchD=!desde||fecha>=new Date(desde);
+    const matchH=!hasta||fecha<=new Date(hasta+'T23:59:59');
+    return matchQ&&matchT&&matchD&&matchH;
+  });
+  const tb=document.getElementById('tabla-historial');
+  if(!rows.length){tb.innerHTML='<div style="color:#555;text-align:center;padding:32px">Sin resultados</div>';return;}
+  tb.innerHTML=rows.map(r=>`
+    <div class="mov-item">
+      <div class="mov-left">
+        <div class="mov-mat">${r.material.replace(/_/g,' ')}</div>
+        <div class="mov-nota">${r.notas||'-'}</div>
+        <div class="mov-meta">
+          <span class="mov-fecha">${fmtFecha(r.fecha)}</span>
+          <span class="mov-cant">× ${r.cantidad}</span>
+          ${r.tecnico ? `<span class="mov-tec">👤 ${r.tecnico}</span>` : ''}
+        </div>
+        ${r.fotoId ? `<img data-foto-id="${r.fotoId}" class="foto-thumb foto-lazy" style="margin-top:8px;background:#1a1a1a" onclick="verFoto('${r.fotoId}')" />` : ''}
+      </div>
+      <div class="mov-right">
+        <span class="badge badge-${r.tipo.toLowerCase()}">${r.tipo}</span>
+        <button class="btn-del" onclick="eliminarMovimiento(${r.id})">🗑</button>
+      </div>
+    </div>`).join('');
+  cargarFotosLazy();
+}
+
+// Carga las miniaturas de foto desde IndexedDB después de pintar el historial,
+// para no bloquear el render con lecturas async.
+async function cargarFotosLazy() {
+  const imgs = document.querySelectorAll('.foto-lazy[data-foto-id]');
+  for (const img of imgs) {
+    const fotoId = img.dataset.fotoId;
+    const dataUrl = await obtenerFotoDB(fotoId);
+    if (dataUrl) img.src = dataUrl;
+    else img.style.display = 'none';
+  }
+}
+
+function renderInstalaciones() {
+  const q=(document.getElementById('search-inst').value||'').toLowerCase();
+  const rows=state.instalaciones.filter(r=>(r.planta+r.material+(r.notas||'')).toLowerCase().includes(q));
+  const tb=document.getElementById('tabla-instalaciones');
+  if(!rows.length){tb.innerHTML='<div style="color:#555;text-align:center;padding:32px">Sin resultados</div>';return;}
+  const grupos={};
+  rows.forEach(r=>{ if(!grupos[r.planta]) grupos[r.planta]=[]; grupos[r.planta].push(r); });
+  tb.innerHTML=Object.entries(grupos).map(([planta,items])=>`
+    <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:14px;padding:14px 16px;margin-bottom:10px">
+      <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:10px">🌵 ${planta}</div>
+      ${items.map(r=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid #222">
+          <div>
+            <div style="font-size:13px;color:#ccc;font-weight:500">${r.material.replace(/_/g,' ')} · ${r.cantidad}</div>
+            ${r.ns&&r.ns!=='-'?`<div style="font-size:11px;color:#555;margin-top:2px">N/S: ${r.ns}</div>`:''}
+            ${r.notas?`<div style="font-size:11px;color:#444;margin-top:1px">${r.notas}</div>`:''}
+          </div>
+          <button class="btn-del" onclick="eliminarInstalacion('${r.id}')">🗑</button>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+function renderResumenSemana() {
+  const hace7=new Date(); hace7.setDate(hace7.getDate()-7);
+  const ult=state.historial.filter(r=>new Date(r.fecha)>=hace7);
+  const entradas=ult.filter(r=>r.tipo==='ENTRADA');
+  const salidas=ult.filter(r=>r.tipo==='SALIDA');
+
+  const sumPorMat=(arr)=>{
+    const m={};
+    arr.forEach(r=>{ m[r.material]=(m[r.material]||0)+r.cantidad; });
+    return m;
+  };
+
+  const eMap=sumPorMat(entradas), sMap=sumPorMat(salidas);
+  const totalE=entradas.reduce((s,r)=>s+r.cantidad,0);
+  const totalS=salidas.reduce((s,r)=>s+r.cantidad,0);
+
+  document.getElementById('semana-entradas').innerHTML=`
+    <div class="semana-title">✅ Entradas últimos 7 días (total: ${totalE})</div>
+    ${Object.keys(eMap).length ? Object.entries(eMap).map(([m,q])=>`<div class="semana-row"><span>${m.replace(/_/g,' ')}</span><span style="color:#4ade80">+${q}</span></div>`).join('') : '<div style="color:#555;font-size:13px">Sin entradas</div>'}`;
+
+  document.getElementById('semana-salidas').innerHTML=`
+    <div class="semana-title">📤 Salidas últimos 7 días (total: ${totalS})</div>
+    ${Object.keys(sMap).length ? Object.entries(sMap).map(([m,q])=>`<div class="semana-row"><span>${m.replace(/_/g,' ')}</span><span style="color:#f87171">-${q}</span></div>`).join('') : '<div style="color:#555;font-size:13px">Sin salidas</div>'}`;
+
+  document.getElementById('semana-stock').innerHTML=`
+    <div class="semana-title">📦 Stock actual</div>
+    ${Object.entries(state.stock).map(([m,q])=>{
+      const min=state.minStock[m];
+      const alerta=min!==undefined&&q<=min;
+      return `<div class="semana-row"><span>${m.replace(/_/g,' ')}</span><span style="color:${alerta?'#f59e0b':'#ccc'}">${q}${alerta?' ⚠️':''}</span></div>`;
+    }).join('')}`;
+}
+
+function cerrarModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+
+function abrirModal(titulo, texto, btns) {
+  // Cerrar otros modales por si están abiertos
+  ['modal-salida','modal-instalacion','modal-stock'].forEach(id => { const el=document.getElementById(id); if(el) el.classList.remove('open'); });
+  document.getElementById('modal-titulo').textContent=titulo;
+  document.getElementById('modal-texto').textContent=texto;
+  const c=document.getElementById('modal-btns'); c.innerHTML='';
+  btns.forEach(b=>{ const el=document.createElement('button'); el.className=b.cls; el.textContent=b.label; el.onclick=()=>{cerrarModal();b.action();}; c.appendChild(el); });
+  const can=document.createElement('button'); can.className='btn-cancelar'; can.textContent='Cancelar'; can.onclick=cerrarModal; c.appendChild(can);
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+// DESHACER
+let ultimaAccion = null;
+let ultimaExpiracion = null;
+let toastTimer = null;
+
+function mostrarToast(msg, accion, onExpire) {
+  ultimaAccion = accion;
+  ultimaExpiracion = onExpire || null;
+  document.getElementById('toast-msg').textContent = msg;
+  const t = document.getElementById('toast-undo');
+  t.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    t.classList.remove('show');
+    ultimaAccion = null;
+    if (ultimaExpiracion) { ultimaExpiracion(); ultimaExpiracion = null; }
+  }, 6000);
+}
+
+function deshacerEliminacion() {
+  if (!ultimaAccion) return;
+  ultimaAccion();
+  ultimaAccion = null;
+  ultimaExpiracion = null;
+  clearTimeout(toastTimer);
+  document.getElementById('toast-undo').classList.remove('show');
+  renderAll();
+  showMsg('msg', 'Acción deshecha', 'ok');
+}
+
+function eliminarInstalacion(id) {
+  abrirModal('¿Eliminar instalación?','Se eliminará este registro de instalación.',
+    [{cls:'btn-no', label:'🗑 Sí, eliminar', action: () => {
+      const item = state.instalaciones.find(i => i.id === id);
+      state.instalaciones = state.instalaciones.filter(i => i.id !== id);
+      saveState(); renderInstalaciones();
+      mostrarToast(`Instalación eliminada`, () => { state.instalaciones.push(item); saveState(); });
+    }}]);
+}
+
+function eliminarMovimiento(id) {
+  const mov = state.historial.find(m => m.id === id);
+  if (!mov) return;
+  const accion = mov.tipo === 'ENTRADA' ? 'descontar' : 'sumar';
+  const cant = mov.cantidad, mat = mov.material.replace(/_/g,' ');
+  abrirModal('¿Eliminar movimiento?', `¿Querés también ${accion} ${cant} unidad(es) de ${mat} del stock?`, [
+    {cls:'btn-si', label:`✓ Sí, ${accion} del stock`, action: () => {
+      const stockAntes = state.stock[mov.material];
+      if (mov.tipo === 'ENTRADA') state.stock[mov.material] = (state.stock[mov.material]||0) - cant;
+      else state.stock[mov.material] = (state.stock[mov.material]||0) + cant;
+      state.historial = state.historial.filter(m => m.id !== id);
+      saveState(); renderAll();
+      mostrarToast(`Movimiento eliminado`, () => {
+        state.historial.push(mov); state.stock[mov.material] = stockAntes; saveState();
+      }, () => { if (mov.fotoId) borrarFotoDB(mov.fotoId); });
+    }},
+    {cls:'btn-no', label:'✕ No, solo eliminar el registro', action: () => {
+      state.historial = state.historial.filter(m => m.id !== id);
+      saveState(); renderHistorial();
+      mostrarToast(`Movimiento eliminado`, () => { state.historial.push(mov); saveState(); },
+        () => { if (mov.fotoId) borrarFotoDB(mov.fotoId); });
+    }}
+  ]);
+}
+
+function eliminarInsumo(mat) {
+  abrirModal('¿Eliminar insumo?', `¿Estás seguro que deseas eliminar "${mat.replace(/_/g,' ')}"? Esta acción no se puede deshacer.`,
+    [{cls:'btn-no', label:'🗑 Sí, eliminar', action: () => {
+      const qty = state.stock[mat], min = state.minStock[mat];
+      delete state.stock[mat]; delete state.minStock[mat];
+      saveState(); renderAll();
+      mostrarToast(`Insumo "${mat.replace(/_/g,' ')}" eliminado`, () => {
+        state.stock[mat] = qty; if (min !== undefined) state.minStock[mat] = min; saveState();
+      });
+    }}]);
+}
+
+function showMsg(id,text,type) {
+  const el=document.getElementById(id); el.textContent=text; el.className='msg '+type;
+  setTimeout(()=>{el.className='msg';},3000);
+}
+
+function registrarMov(tipo) {
+  const mat=document.getElementById('mov-material').value;
+  const cant=parseInt(document.getElementById('mov-cantidad').value)||0;
+  const sn=document.getElementById('mov-sn').value.trim();
+  const tec=document.getElementById('mov-tecnico').value.trim();
+  const notas=document.getElementById('mov-notas').value.trim();
+  const fechaVal=document.getElementById('mov-fecha').value;
+  const fecha=fechaVal ? new Date(fechaVal+'T12:00:00').toISOString() : new Date().toISOString();
+  if(cant<=0){showMsg('msg-mov','Ingresa una cantidad válida','err');return;}
+  if(tipo==='SALIDA'&&state.stock[mat]<cant){showMsg('msg-mov','Stock insuficiente: hay '+state.stock[mat]+' unidades','err');return;}
+  state.stock[mat]=tipo==='ENTRADA'?state.stock[mat]+cant:state.stock[mat]-cant;
+  const notaFinal=sn?`${notas?notas+' ':''}(N/S: ${sn})`:notas;
+  state.historial.push({id:state.nextId++,fecha,material:mat,tipo,cantidad:cant,notas:notaFinal||'',tecnico:tec});
+  saveState(); renderAll();
+  document.getElementById('mov-cantidad').value=1;
+  document.getElementById('mov-notas').value='';
+  document.getElementById('mov-sn').value='';
+  document.getElementById('mov-tecnico').value='';
+  showMsg('msg-mov',`${tipo} registrada: ${cant}x ${mat.replace(/_/g,' ')}`,'ok');
+}
+
+function agregarInsumo() {
+  const nombre=document.getElementById('nuevo-nombre').value.trim().toUpperCase().replace(/\s+/g,'_');
+  const qty=parseInt(document.getElementById('nuevo-qty').value)||0;
+  const min=document.getElementById('nuevo-min').value.trim();
+  const emoji=document.getElementById('nuevo-emoji').value||'📦';
+  if(!nombre){showMsg('msg','Ingresa un nombre','err');return;}
+  if(state.stock[nombre]!==undefined){showMsg('msg','Este insumo ya existe','err');return;}
+  state.stock[nombre]=qty;
+  if(!state.matEmoji) state.matEmoji={};
+  state.matEmoji[nombre]=emoji;
+  if(min!=='') state.minStock[nombre]=parseInt(min);
+  if(qty>0) state.historial.push({id:state.nextId++,fecha:new Date().toISOString(),material:nombre,tipo:'ENTRADA',cantidad:qty,notas:'Stock inicial',tecnico:''});
+  saveState(); renderAll();
+  document.getElementById('nuevo-nombre').value='';
+  document.getElementById('nuevo-qty').value=0;
+  document.getElementById('nuevo-min').value='';
+  selectEmoji('📦');
+  showMsg('msg',`Insumo "${nombre}" agregado`,'ok');
+}
+
+
+function exportarRespaldo() {
+  const fecha = new Date().toLocaleDateString('es-CL').replace(/\//g,'-');
+  const datos = JSON.stringify(state, null, 2);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([datos], {type:'application/json'}));
+  a.download = `solarstock_respaldo_${fecha}.json`;
+  a.click();
+}
+
+function importarRespaldo(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const datos = JSON.parse(e.target.result);
+      if (!datos.stock || !datos.historial || !datos.instalaciones) {
+        showMsg('msg-restaurar','Archivo inválido, no parece un respaldo de SolarStock','err');
+        return;
+      }
+      abrirModal(
+        '¿Restaurar respaldo?',
+        `Esto reemplazará todos tus datos actuales con el respaldo. ¿Estás seguro?`,
+        [{cls:'btn-no', label:'✓ Sí, restaurar', action: () => {
+          state = datos;
+          saveState(); renderAll();
+          migrarFotosViejas();
+          showMsg('msg-restaurar','Respaldo restaurado correctamente','ok');
+          input.value='';
+        }}]
+      );
+    } catch(e) {
+      showMsg('msg-restaurar','Error al leer el archivo','err');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// Respaldo de fotos: lee todas las fotos guardadas en IndexedDB y las exporta
+// como un único JSON { fotoId: dataUrl, ... }. Es independiente del respaldo de datos.
+async function exportarRespaldoFotos() {
+  try {
+    const db = await abrirFotoDB();
+    const tx = db.transaction(FOTO_STORE, 'readonly');
+    const store = tx.objectStore(FOTO_STORE);
+    const fotos = {};
+    await new Promise((resolve, reject) => {
+      const req = store.openCursor();
+      req.onsuccess = (e) => {
+        const cursor = e.target.result;
+        if (cursor) { fotos[cursor.key] = cursor.value; cursor.continue(); }
+        else resolve();
+      };
+      req.onerror = () => reject(req.error);
+    });
+    const total = Object.keys(fotos).length;
+    if (!total) { showMsg('msg-restaurar-fotos','No hay fotos guardadas para exportar','err'); return; }
+    const fecha = new Date().toLocaleDateString('es-CL').replace(/\//g,'-');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(fotos)], {type:'application/json'}));
+    a.download = `solarstock_fotos_${fecha}.json`;
+    a.click();
+    showMsg('msg-restaurar-fotos', `${total} foto(s) exportada(s)`, 'ok');
+  } catch(e) {
+    showMsg('msg-restaurar-fotos','Error al exportar fotos','err');
+  }
+}
+
+function importarRespaldoFotos(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const fotos = JSON.parse(e.target.result);
+      const claves = Object.keys(fotos);
+      if (!claves.length) { showMsg('msg-restaurar-fotos','Archivo vacío o inválido','err'); return; }
+      abrirModal(
+        '¿Restaurar fotos?',
+        `Se importarán ${claves.length} foto(s) al dispositivo. No se borrarán las que ya existen.`,
+        [{cls:'btn-no', label:'✓ Sí, importar', action: async () => {
+          for (const fotoId of claves) await guardarFotoDB(fotoId, fotos[fotoId]);
+          showMsg('msg-restaurar-fotos', `${claves.length} foto(s) restaurada(s)`, 'ok');
+          renderHistorial();
+          input.value='';
+        }}]
+      );
+    } catch(err) {
+      showMsg('msg-restaurar-fotos','Error al leer el archivo','err');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function descargarCSV() {
+  const filas=[['Fecha','Material','Tipo','Cantidad','Técnico','Notas']];
+  [...state.historial].reverse().forEach(r=>filas.push([fmtFecha(r.fecha),r.material,r.tipo,r.cantidad,r.tecnico||'',r.notas||'']));
+  const csv=filas.map(f=>f.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv'}));
+  a.download='solarstock_historial.csv'; a.click();
+}
+
+function descargarStockCSV() {
+  const filas=[['Material','Stock Actual','Stock Mínimo']];
+  Object.entries(state.stock).forEach(([m,q])=>filas.push([m,q,state.minStock[m]||'']));
+  const csv=filas.map(f=>f.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv'}));
+  a.download='solarstock_stock.csv'; a.click();
+}
+
+function descargarInstalacionesCSV() {
+  const filas=[['Planta','Material','Cantidad','N/S','Notas']];
+  state.instalaciones.forEach(r=>filas.push([r.planta,r.material,r.cantidad,r.ns||'',r.notas||'']));
+  const csv=filas.map(f=>f.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv'}));
+  a.download='solarstock_instalaciones.csv'; a.click();
+}
+
+function descargarPDF() {
+  const w=window.open('','_blank');
+  const fecha=new Date().toLocaleDateString('es-CL');
+  const stockRows=Object.entries(state.stock).map(([m,q])=>`<tr><td>${m.replace(/_/g,' ')}</td><td>${q}</td><td>${state.minStock[m]||'-'}</td></tr>`).join('');
+  const histRows=[...state.historial].reverse().map(r=>`<tr><td>${fmtFecha(r.fecha)}</td><td>${r.material.replace(/_/g,' ')}</td><td>${r.tipo}</td><td>${r.cantidad}</td><td>${r.tecnico||''}</td><td>${r.notas||''}</td></tr>`).join('');
+  const instRows=state.instalaciones.map(r=>`<tr><td>${r.planta}</td><td>${r.material.replace(/_/g,' ')}</td><td>${r.cantidad}</td><td>${r.ns||''}</td><td>${r.notas||''}</td></tr>`).join('');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>SolarStock</title>
+  <style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h1{font-size:20px}
+  h2{font-size:14px;margin:20px 0 8px;border-bottom:1px solid #ddd;padding-bottom:4px}
+  table{width:100%;border-collapse:collapse;font-size:12px}th{background:#f0f0f0;text-align:left;padding:6px 8px;border:1px solid #ccc}
+  td{padding:5px 8px;border:1px solid #ddd}tr:nth-child(even){background:#fafafa}</style></head>
+  <body><h1>⚡ SolarStock — ${fecha}</h1>
+  <h2>Stock Actual</h2><table><tr><th>Material</th><th>Stock</th><th>Mínimo</th></tr>${stockRows}</table>
+  <h2>Historial</h2><table><tr><th>Fecha</th><th>Material</th><th>Tipo</th><th>Cant.</th><th>Técnico</th><th>Notas</th></tr>${histRows}</table>
+  <h2>Instalaciones</h2><table><tr><th>Planta</th><th>Material</th><th>Cant.</th><th>N/S</th><th>Notas</th></tr>${instRows}</table>
+  <script>window.onload=()=>window.print()<\/script></body></html>`);
+  w.document.close();
+}
+
+// ===== MÓDULO FOTOS (IndexedDB) =====
+// Las imágenes NO se guardan en localStorage. Solo se guarda un fotoId (string)
+// en el historial, y la imagen real vive en IndexedDB (base de datos local del navegador).
+const FOTO_DB_NAME = 'solarstock_fotos_db';
+const FOTO_STORE = 'fotos';
+let _fotoDB = null;
+
+function abrirFotoDB() {
+  return new Promise((resolve, reject) => {
+    if (_fotoDB) { resolve(_fotoDB); return; }
+    const req = indexedDB.open(FOTO_DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(FOTO_STORE)) db.createObjectStore(FOTO_STORE);
+    };
+    req.onsuccess = () => { _fotoDB = req.result; resolve(_fotoDB); };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function guardarFotoDB(fotoId, dataUrl) {
+  const db = await abrirFotoDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(FOTO_STORE, 'readwrite');
+    tx.objectStore(FOTO_STORE).put(dataUrl, fotoId);
+    tx.oncomplete = () => resolve(true);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function obtenerFotoDB(fotoId) {
+  if (!fotoId) return null;
+  try {
+    const db = await abrirFotoDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(FOTO_STORE, 'readonly');
+      const req = tx.objectStore(FOTO_STORE).get(fotoId);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => resolve(null);
+    });
+  } catch(e) { return null; }
+}
+
+async function borrarFotoDB(fotoId) {
+  if (!fotoId) return;
+  try {
+    const db = await abrirFotoDB();
+    const tx = db.transaction(FOTO_STORE, 'readwrite');
+    tx.objectStore(FOTO_STORE).delete(fotoId);
+  } catch(e) {}
+}
+
+function previewFoto(inputId, previewId) {
+  const file = document.getElementById(inputId).files[0];
+  const preview = document.getElementById(previewId);
+  if (!file) { preview.innerHTML=''; return; }
+  const reader = new FileReader();
+  reader.onload = e => { preview.innerHTML=`<img src="${e.target.result}" class="foto-preview" />`; };
+  reader.readAsDataURL(file);
+}
+
+// Lee el archivo del input, lo guarda en IndexedDB y devuelve un fotoId (no la imagen).
+// Mantiene la misma firma que antes para no tener que cambiar las llamadas existentes.
+function leerFoto(inputId) {
+  return new Promise(resolve => {
+    const file = document.getElementById(inputId).files[0];
+    if (!file) { resolve(null); return; }
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const dataUrl = e.target.result;
+      const fotoId = 'foto_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+      try {
+        await guardarFotoDB(fotoId, dataUrl);
+        resolve(fotoId);
+      } catch(err) {
+        console.error('Error guardando foto en IndexedDB', err);
+        resolve(null);
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function resetFoto(inputId, previewId) {
+  document.getElementById(inputId).value='';
+  document.getElementById(previewId).innerHTML='';
+}
+
+// MODAL ELIMINAR INSUMO
+function abrirModalEliminarInsumo() {
+  const lista = document.getElementById('lista-eliminar-insumos');
+  lista.innerHTML = Object.entries(state.stock).map(([mat, qty]) => {
+    const e = MAT_ESTILOS[mat] || ESTILO_DEFAULT;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #1e2530">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:22px">${e.icon}</span>
+        <div>
+          <div style="font-size:14px;font-weight:600;color:#fff">${mat.replace(/_/g,' ')}</div>
+          <div style="font-size:12px;color:#4a6080">${qty} unidades</div>
+        </div>
+      </div>
+      <button data-mat="${mat}" onclick="confirmarEliminarInsumo(this.dataset.mat)" style="background:#2d1212;border:1px solid #7f1d1d;color:#f87171;padding:8px 14px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer">🗑 Eliminar</button>
+    </div>`;
+  }).join('');
+  document.getElementById('modal-eliminar-insumo').classList.add('open');
+}
+
+function cerrarModalEliminarInsumo() {
+  document.getElementById('modal-eliminar-insumo').classList.remove('open');
+}
+
+function confirmarEliminarInsumo(mat) {
+  cerrarModalEliminarInsumo();
+  abrirModal(
+    '¿Eliminar insumo?',
+    `¿Estás seguro que deseas eliminar "${mat.replace(/_/g,' ')}"? Esta acción no se puede deshacer.`,
+    [{cls:'btn-no', label:'🗑 Sí, eliminar', action: () => {
+      const qty = state.stock[mat], min = state.minStock[mat];
+      delete state.stock[mat]; delete state.minStock[mat];
+      saveState(); renderAll();
+      mostrarToast(`Insumo "${mat.replace(/_/g,' ')}" eliminado`, () => {
+        state.stock[mat] = qty; if (min !== undefined) state.minStock[mat] = min; saveState(); renderAll();
+      });
+    }}]
+  );
+}
+
+
+
+// ============================================================
+// ASISTENTE DE BIENVENIDA
+// ============================================================
+
+function resetearApp() {
+  abrirModal(
+    '¿Borrar todo?',
+    'Se eliminarán todos los datos: stock, historial e instalaciones. Esta acción no se puede deshacer.',
+    [{cls:'btn-no', label:'🗑 Sí, borrar todo', action: () => {
+      localStorage.removeItem(STORAGE_KEY);
+      state = estadoVacio();
+      saveState();
+      renderAll();
+      mostrarBienvenida();
+      showMsg('msg','Aplicación reiniciada','ok');
+    }}]
+  );
+}
+
+function mostrarBienvenida() {
+  document.getElementById('modal-bienvenida').classList.add('open');
+}
+
+function cerrarBienvenida() {
+  document.getElementById('modal-bienvenida').classList.remove('open');
+}
+
+function bienvenidaVacio() {
+  cerrarBienvenida();
+  showMsg('msg','Listo. Agrega tus primeros insumos desde el botón +','ok');
+}
+
+function bienvenidaImportar() {
+  document.getElementById('bienvenida-file-csv').click();
+}
+
+function bienvenidaRestaurar() {
+  document.getElementById('bienvenida-file-json').click();
+}
+
+function bienvenidaProcesarJSON(input) {
+  importarRespaldo(input);
+  cerrarBienvenida();
+}
+
+function bienvenidaProcesarCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const lines = e.target.result.split('\n').filter(l=>l.trim());
+      if (lines.length < 2) { showMsg('msg-bienvenida','Archivo vacío o sin datos','err'); return; }
+      const headers = lines[0].split(',').map(h=>h.replace(/"/g,'').trim().toLowerCase());
+      const colNombre = headers.findIndex(h=>['nombre','material','producto','name'].includes(h));
+      const colQty    = headers.findIndex(h=>['stock','cantidad','qty','quantity'].includes(h));
+      const colEmoji  = headers.findIndex(h=>['emoji','icono','icon'].includes(h));
+      if (colNombre < 0) { showMsg('msg-bienvenida','No se encontró columna "Nombre" o "Material"','err'); return; }
+      let importados = 0;
+      lines.slice(1).forEach(line => {
+        const cols = line.split(',').map(c=>c.replace(/"/g,'').trim());
+        const nombre = cols[colNombre]?.toUpperCase().replace(/\s+/g,'_');
+        if (!nombre) return;
+        const qty = colQty >= 0 ? (parseInt(cols[colQty])||0) : 0;
+        const emoji = colEmoji >= 0 ? (cols[colEmoji]||'📦') : '📦';
+        if (!state.stock.hasOwnProperty(nombre)) {
+          state.stock[nombre] = qty;
+          state.matEmoji[nombre] = emoji;
+          if (qty > 0) state.historial.push({id:state.nextId++,fecha:new Date().toISOString(),material:nombre,tipo:'ENTRADA',cantidad:qty,notas:'Importación inicial',tecnico:''});
+          importados++;
+        }
+      });
+      saveState(); renderAll(); cerrarBienvenida();
+      showMsg('msg', importados + ' productos importados correctamente','ok');
+    } catch(err) {
+      showMsg('msg-bienvenida','Error al procesar el archivo: '+err.message,'err');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ============================================================
+// FORMULARIO ÚNICO DE INSTALACIÓN
+// Reutilizable desde Plantas (planta preseleccionada) y desde + (libre)
+// ============================================================
+function toggleInstSN() {
+  const mat = document.getElementById('inst-material').value;
+  const show = MAT_CON_SN.includes(mat);
+  document.getElementById('inst-sn-group').style.display = show ? 'block' : 'none';
+  if (!show) document.getElementById('inst-sn').value = '';
+}
+
+function abrirFormInstalacion(plantaFija) {
+  // plantaFija: string con nombre de planta (desde tab Plantas) o null (desde +, libre)
+  const g = document.getElementById('inst-planta-group');
+  const inp = document.getElementById('inst-planta');
+  if (plantaFija) {
+    inp.value = plantaFija;
+    g.style.opacity = '0.5';
+    inp.readOnly = true;
+    document.getElementById('inst-modal-titulo').textContent = '🌵 ' + plantaFija;
+  } else {
+    inp.value = '';
+    g.style.opacity = '1';
+    inp.readOnly = false;
+    document.getElementById('inst-modal-titulo').textContent = '🌵 Registrar instalación';
+  }
+  document.getElementById('inst-sn').value = '';
+  document.getElementById('inst-cantidad').value = '';
+  document.getElementById('inst-notas').value = '';
+  document.getElementById('inst-tecnico').value = '';
+  document.getElementById('inst-fecha').value = hoyISO();
+  document.getElementById('msg-inst-modal').className = 'msg';
+  resetFoto('inst-foto','inst-foto-preview');
+  renderSelectMaterial();
+  toggleInstSN();
+  document.getElementById('modal-instalacion').classList.add('open');
+}
+
+function cerrarFormInstalacion() {
+  document.getElementById('modal-instalacion').classList.remove('open');
+  resetFoto('inst-foto','inst-foto-preview');
+}
+
+async function guardarInstalacion() {
+  const planta   = document.getElementById('inst-planta').value.trim();
+  const mat      = document.getElementById('inst-material').value;
+  const cantStr  = document.getElementById('inst-cantidad').value.trim();
+  const sn       = document.getElementById('inst-sn').value.trim();
+  const notas    = document.getElementById('inst-notas').value.trim();
+  const tec      = document.getElementById('inst-tecnico').value.trim();
+  const fechaVal = document.getElementById('inst-fecha').value;
+  if (!planta) { showMsg('msg-inst-modal','Ingresa el nombre de la planta','err'); return; }
+  if (!cantStr) { showMsg('msg-inst-modal','Ingresa la cantidad','err'); return; }
+  const cantNum = parseInt(cantStr) || 0;
+  const fecha   = fechaVal ? new Date(fechaVal+'T12:00:00').toISOString() : new Date().toISOString();
+  const fotoId  = await leerFoto('inst-foto');
+
+  // Registrar en instalaciones
+  state.instalaciones.push({
+    id: 'i' + state.nextInstId++,
+    planta, material: mat,
+    cantidad: cantStr,
+    ns: sn || '-',
+    notas: notas || 'Comisionamiento',
+    fecha, tecnico: tec, fotoId: fotoId || null
+  });
+
+  // Si hay cantidad numérica y stock suficiente → descontar y registrar movimiento
+  if (cantNum > 0 && (state.stock[mat] || 0) >= cantNum) {
+    abrirModal(
+      '¿Descontar del stock?',
+      `¿Querés también descontar ${cantNum} unidad(es) de ${mat.replace(/_/g,' ')} del stock?`,
+      [
+        { cls:'btn-si', label:'✓ Sí, descontar', action: () => {
+          state.stock[mat] -= cantNum;
+          const notaMov = `Instalado en: ${planta}${sn?' (N/S: '+sn+')':''}`;
+          state.historial.push({ id:state.nextId++, fecha, material:mat, tipo:'SALIDA', cantidad:cantNum, notas:notaMov, tecnico:tec, fotoId: fotoId||null });
+          saveState(); renderAll();
+          mostrarToast(`Instalación registrada en ${planta}`, () => {
+            state.instalaciones.pop();
+            state.historial.pop();
+            state.stock[mat] += cantNum;
+            saveState(); renderAll();
+          });
+        }},
+        { cls:'btn-no', label:'No, solo registrar', action: () => {
+          saveState(); renderAll();
+          mostrarToast(`Instalación registrada en ${planta}`, () => { state.instalaciones.pop(); saveState(); renderAll(); });
+        }}
+      ]
+    );
+  } else {
+    saveState(); renderAll();
+    mostrarToast(`Instalación registrada en ${planta}`, () => { state.instalaciones.pop(); saveState(); renderAll(); });
+  }
+  cerrarFormInstalacion();
+}
+
+// FAB
+function toggleFab() {
+  const m=document.getElementById('fab-menu'), o=document.getElementById('fab-overlay');
+  const open=m.classList.toggle('open'); o.classList.toggle('open',open);
+  document.getElementById('fab-btn').textContent=open?'✕':'+';
+}
+function cerrarFab() {
+  document.getElementById('fab-menu').classList.remove('open');
+  document.getElementById('fab-overlay').classList.remove('open');
+  document.getElementById('fab-btn').textContent='+';
+}
+
+// MODAL SALIDA RAPIDA
+function abrirModalSalida() {
+  document.getElementById('sal-destino').value='';
+  document.getElementById('sal-tecnico').value='';
+  document.getElementById('sal-fecha').value=hoyISO();
+  document.getElementById('msg-sal').className='msg';
+  document.getElementById('sal-items').innerHTML='';
+  agregarItemSalida();
+  document.getElementById('modal-salida').classList.add('open');
+}
+function cerrarModalSalida() { document.getElementById('modal-salida').classList.remove('open'); }
+
+function agregarItemSalida() {
+  const mats=Object.keys(state.stock).map(m=>`<option value="${m}">${getIcon(m)} ${m.replace(/_/g,' ')} (${state.stock[m]})</option>`).join('');
+  const id='sal_'+Date.now();
+  const div=document.createElement('div'); div.className='item-row'; div.id=id;
+  div.innerHTML=`
+    <div class="item-row-top">
+      <select onchange="toggleItemSNSal('${id}')">${mats}</select>
+      <input type="number" min="1" value="1" placeholder="Cant." style="width:80px;font-size:14px;padding:9px 10px" inputmode="numeric" />
+      <button class="item-row-del" onclick="document.getElementById('${id}').remove()">🗑</button>
+    </div>
+    <div class="item-sn" style="display:none;margin-top:8px">
+      <input type="text" placeholder="N/S del equipo" style="font-size:14px;padding:9px 12px" />
+    </div>`;
+  document.getElementById('sal-items').appendChild(div);
+  toggleItemSNSal(id);
+}
+
+function toggleItemSNSal(id) {
+  const row=document.getElementById(id);
+  if(!row) return;
+  const mat=row.querySelector('select').value;
+  row.querySelector('.item-sn').style.display=MAT_CON_SN.includes(mat)?'block':'none';
+}
+
+async function registrarSalidaRapida() {
+  const destino=document.getElementById('sal-destino').value.trim();
+  const tec=document.getElementById('sal-tecnico').value.trim();
+  if(!destino){showMsg('msg-sal','Ingresa el destino o motivo','err');return;}
+  const rows=document.getElementById('sal-items').querySelectorAll('.item-row');
+  if(!rows.length){showMsg('msg-sal','Agrega al menos un insumo','err');return;}
+  const fechaVal=document.getElementById('sal-fecha').value;
+  const fecha=fechaVal?new Date(fechaVal+'T12:00:00').toISOString():new Date().toISOString();
+  let errores=[];
+  for(const row of rows){
+    const mat=row.querySelector('select').value;
+    const cant=parseInt(row.querySelectorAll('input')[0].value)||0;
+    if(cant<=0){showMsg('msg-sal','Ingresa cantidades válidas','err');return;}
+    if(state.stock[mat]<cant) errores.push(`${mat.replace(/_/g,' ')}: solo hay ${state.stock[mat]}`);
+  }
+  if(errores.length){showMsg('msg-sal','Stock insuficiente: '+errores.join(', '),'err');return;}
+  const foto = await leerFoto('sal-foto');
+  let ok=0;
+  for(const row of rows){
+    const mat=row.querySelector('select').value;
+    const cant=parseInt(row.querySelectorAll('input')[0].value)||0;
+    const sn=row.querySelectorAll('input')[1]?row.querySelectorAll('input')[1].value.trim():'';
+    const nota=`${destino}${sn?' (N/S: '+sn+')':''}`;
+    state.stock[mat]-=cant;
+    state.historial.push({id:state.nextId++,fecha,material:mat,tipo:'SALIDA',cantidad:cant,notas:nota,tecnico:tec,fotoId:ok===0?foto:null});
+    ok++;
+  }
+  saveState(); renderAll();
+  cerrarModalSalida();
+  resetFoto('sal-foto','sal-foto-preview');
+  showMsg('msg',`Salida registrada: ${ok} insumo(s)`,'ok');
+}
+
+// (abrirModalPlanta reemplazada por abrirFormInstalacion)
+
+
+
+// MODAL STOCK RAPIDO
+function abrirModalStock() {
+  document.getElementById('rs-notas').value='';
+  document.getElementById('rs-fecha').value=hoyISO();
+  document.getElementById('msg-rs').className='msg';
+  document.getElementById('rs-items').innerHTML='';
+  agregarItemStock();
+  document.getElementById('modal-stock').classList.add('open');
+}
+function cerrarModalStock() { document.getElementById('modal-stock').classList.remove('open'); }
+
+function agregarItemStock() {
+  const mats=Object.keys(state.stock).map(m=>`<option value="${m}">${getIcon(m)} ${m.replace(/_/g,' ')}</option>`).join('');
+  const id='rs_'+Date.now();
+  const div=document.createElement('div'); div.className='item-row'; div.id=id;
+  div.innerHTML=`
+    <div class="item-row-top">
+      <select>${mats}</select>
+      <input type="number" min="1" value="1" placeholder="Cant." style="width:80px;font-size:14px;padding:9px 10px" inputmode="numeric" />
+      <button class="item-row-del" onclick="document.getElementById('${id}').remove()">🗑</button>
+    </div>`;
+  document.getElementById('rs-items').appendChild(div);
+}
+
+async function registrarStockRapido() {
+  const notas=document.getElementById('rs-notas').value.trim();
+  const rows=document.getElementById('rs-items').querySelectorAll('.item-row');
+  if(!rows.length){showMsg('msg-rs','Agrega al menos un insumo','err');return;}
+  const foto = await leerFoto('rs-foto');
+  const fechaVal=document.getElementById('rs-fecha').value;
+  const fecha=fechaVal?new Date(fechaVal+'T12:00:00').toISOString():new Date().toISOString();
+  let ok=0;
+  for(const row of rows){
+    const mat=row.querySelector('select').value;
+    const cant=parseInt(row.querySelector('input').value)||0;
+    if(cant<=0) continue;
+    state.stock[mat]=(state.stock[mat]||0)+cant;
+    state.historial.push({id:state.nextId++,fecha,material:mat,tipo:'ENTRADA',cantidad:cant,notas:notas||'',tecnico:'',fotoId:ok===0?foto:null});
+    ok++;
+  }
+  if(!ok){showMsg('msg-rs','Ingresa cantidades válidas','err');return;}
+  saveState(); renderAll();
+  cerrarModalStock();
+  resetFoto('rs-foto','rs-foto-preview');
+  showMsg('msg',`Stock actualizado: ${ok} insumo(s) ingresado(s)`,'ok');
+}
+
+async function verFoto(fotoId) {
+  const dataUrl = await obtenerFotoDB(fotoId);
+  if (!dataUrl) return;
+  const overlay = document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px';
+  overlay.innerHTML=`<img src="${dataUrl}" style="max-width:95vw;max-height:80vh;border-radius:12px;object-fit:contain" />
+    <button style="background:#222;border:1px solid #333;color:#ccc;padding:10px 24px;border-radius:99px;font-size:14px;cursor:pointer" onclick="this.parentElement.remove()">Cerrar</button>`;
+  overlay.onclick = e => { if(e.target===overlay) overlay.remove(); };
+  document.body.appendChild(overlay);
+}
+
+function filtrarPorMaterial(mat) { showTab('historial'); document.getElementById('search-hist').value=mat; renderHistorial(); }
+
+function showInnerTab(name) {
+  document.getElementById('inner-ver').style.display = name==='ver'?'block':'none';
+  document.getElementById('inner-agregar').style.display = name==='agregar'?'block':'none';
+  document.querySelectorAll('.inner-tab').forEach((t,i)=>t.classList.toggle('active',i===(name==='ver'?0:1)));
+  // inner-agregar abre el modal unificado directamente
+}
+
+function showTab(name) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  document.querySelector('.content').scrollTop=0;
+}
+
+loadState();
+</script>
+</body>
+</html>
