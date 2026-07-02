@@ -1,0 +1,1713 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1d1040">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SolarStock">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-512.svg">
+<title>SolarStock</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:system-ui,-apple-system,sans-serif;background:#080c14;color:#e0e0e0;display:flex;flex-direction:column}
+
+/* HEADER */
+.header{padding:14px 16px 0;flex-shrink:0;display:flex;justify-content:space-between;align-items:flex-start}
+.header h1{font-size:20px;font-weight:800;background:linear-gradient(90deg,#60a5fa,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header p{font-size:11px;color:#555;margin-top:2px}
+#resumen-header{font-size:11px;color:#60a5fa;margin-top:2px;text-align:right}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:14px 16px;padding-bottom:90px}
+
+/* NAV */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#0d1117;border-top:1px solid #1e2530;display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 2px 8px;border:none;background:none;color:#3d4f63;font-size:9px;font-weight:500;cursor:pointer;gap:3px;transition:color .15s}
+.nav-btn .icon{font-size:18px;line-height:1}
+.nav-btn.active{color:#60a5fa}
+
+/* SECTIONS */
+.section{display:none}
+.section.active{display:block}
+
+/* CATEGORÍAS Y STOCK */
+.cat-group{margin-bottom:18px}
+.cat-title{font-size:11px;font-weight:700;color:#4a6080;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;padding:0 2px}
+.stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.stat-card{border-radius:16px;padding:14px;border:none;position:relative;overflow:hidden;cursor:pointer;transition:transform .1s}
+.stat-card:active{transform:scale(.97)}
+.stat-card .label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;font-weight:600;opacity:.8}
+.stat-card .mat-icon{font-size:28px;line-height:1;margin-bottom:6px;display:block}
+.stat-card .qty{font-size:32px;font-weight:800;line-height:1}
+.stat-card .unit-label{font-size:11px;margin-top:3px;opacity:.6}
+.stat-card .stock-min{font-size:10px;margin-top:5px;opacity:.5}
+.stat-card.low .qty{animation:pulse-warn 1.5s infinite}
+@keyframes pulse-warn{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* ALERT */
+.alert-banner{background:#1a0808;border:1px solid #7f1d1d;border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:13px;color:#f87171;display:none}
+.alert-banner.visible{display:block}
+
+/* CARDS */
+.card{background:#0d1117;border:1px solid #1e2530;border-radius:14px;padding:14px 16px;margin-bottom:12px}
+.card h3{font-size:14px;font-weight:600;color:#fff;margin-bottom:12px}
+
+/* FORMS */
+.form-group{margin-bottom:11px}
+.form-group label{font-size:11px;color:#4a6080;display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+input,select,textarea{width:100%;background:#080c14;border:1px solid #1e2530;border-radius:10px;padding:11px 13px;color:#e0e0e0;font-size:16px;outline:none;appearance:none;-webkit-appearance:none;font-family:inherit}
+textarea{resize:none;height:70px;font-size:14px}
+input:focus,select:focus,textarea:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center;padding-right:34px}
+.datalist-wrap{position:relative}
+input[list]{padding-right:34px}
+
+/* BOTONES */
+.btn{width:100%;padding:13px;border-radius:12px;border:none;font-size:15px;font-weight:600;cursor:pointer;text-align:center}
+.btn:active{opacity:.8}
+.btn-row{display:flex;gap:10px;margin-top:4px}
+.btn-row .btn{flex:1}
+.btn-primary{background:linear-gradient(135deg,#1d4ed8,#2563eb);color:#fff;box-shadow:0 4px 12px rgba(37,99,235,.3)}
+.btn-success{background:#052e16;color:#4ade80;border:1px solid #14532d}
+.btn-danger{background:#2d1212;color:#f87171;border:1px solid #7f1d1d}
+.btn-ghost{background:#0d1117;color:#4a6080;border:1px solid #1e2530}
+.btn-export{background:#0d1117;color:#ccc;border:1px solid #1e2530;margin-bottom:10px;text-align:left;padding:13px 15px;font-size:14px}
+.btn-del{background:none;border:none;color:#ef4444;font-size:18px;padding:4px 8px;cursor:pointer;line-height:1}
+
+/* SEARCH */
+.search-row{display:flex;gap:8px;margin-bottom:12px}
+.search-row input{flex:1;font-size:14px}
+.search-row select{max-width:130px;font-size:14px}
+
+/* MSGS */
+.msg{font-size:13px;padding:11px 13px;border-radius:10px;margin-bottom:11px;display:none;font-weight:500}
+.msg.ok{background:#052e16;color:#4ade80;display:block}
+.msg.err{background:#2d1212;color:#f87171;display:block}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#0d1117;border:1px solid #1e2530;border-radius:20px 20px 0 0;padding:22px 18px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
+.modal h4{font-size:16px;font-weight:700;color:#fff;margin-bottom:6px}
+.modal p{font-size:13px;color:#4a6080;margin-bottom:18px;line-height:1.5}
+.modal-grande{background:#0d1117;border:1px solid #1e2530;border-radius:20px 20px 0 0;padding:20px 16px;width:100%;max-width:480px;max-height:92vh;overflow-y:auto}
+.modal-grande h4{font-size:16px;font-weight:700;color:#fff;margin-bottom:14px}
+.modal-btns{display:flex;flex-direction:column;gap:9px}
+
+/* MOVIMIENTOS */
+.mov-list{display:flex;flex-direction:column;gap:8px}
+.mov-item{background:#0d1117;border:1px solid #1e2530;border-radius:12px;padding:11px 13px;display:flex;align-items:flex-start;gap:10px}
+.mov-left{flex:1;min-width:0}
+.mov-mat{font-weight:700;color:#fff;font-size:14px}
+.mov-nota{font-size:12px;color:#4a6080;margin-top:3px}
+.mov-meta{display:flex;align-items:center;gap:8px;margin-top:5px;flex-wrap:wrap}
+.mov-fecha{font-size:11px;color:#3d4f63}
+.mov-cant{font-size:12px;font-weight:700;color:#60a5fa}
+.mov-tec{font-size:11px;color:#34d399}
+.mov-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
+.badge{display:inline-block;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap}
+.badge-entrada,.badge-stock{background:#052e16;color:#4ade80;border:1px solid #14532d}
+.badge-salida,.badge-instalacion,.badge-entrega,.badge-baja{background:#2d1212;color:#f87171;border:1px solid #7f1d1d}
+.badge-traspaso,.badge-traslado{background:#1a1a2e;color:#a78bfa;border:1px solid #4c1d95}
+.badge-recuperacion,.badge-devolucion{background:#0f2233;color:#38bdf8;border:1px solid #0c4a6e}
+
+/* INSTALACIONES */
+.inst-group{background:#0d1117;border:1px solid #1e2530;border-radius:14px;padding:14px 16px;margin-bottom:10px}
+.inst-planta-title{font-size:15px;font-weight:700;color:#fff;margin-bottom:10px}
+.inst-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid #111827}
+
+/* FAB */
+.fab{position:fixed;right:20px;bottom:80px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#1d4ed8,#2563eb);border:none;color:#fff;font-size:28px;cursor:pointer;z-index:150;box-shadow:0 4px 20px rgba(37,99,235,.5);display:flex;align-items:center;justify-content:center;transition:transform .15s}
+.fab:active{transform:scale(.93)}
+.fab-menu{position:fixed;right:16px;bottom:148px;display:flex;flex-direction:column;gap:10px;z-index:149;pointer-events:none;opacity:0;transform:translateY(10px);transition:opacity .2s,transform .2s}
+.fab-menu.open{pointer-events:all;opacity:1;transform:translateY(0)}
+.fab-item{display:flex;align-items:center;gap:10px;justify-content:flex-end}
+.fab-label{background:#0d1117;border:1px solid #1e2530;padding:8px 14px;border-radius:99px;font-size:13px;font-weight:500;color:#e0e0e0;white-space:nowrap}
+.fab-icon{width:44px;height:44px;border-radius:50%;border:none;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.fab-overlay{position:fixed;inset:0;z-index:148;display:none}
+.fab-overlay.open{display:block}
+
+/* TOAST DESHACER */
+.toast-undo{position:fixed;bottom:90px;left:16px;right:16px;background:#1e293b;border:1px solid #334155;border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;z-index:300;transform:translateY(20px);opacity:0;transition:all .25s;pointer-events:none}
+.toast-undo.show{transform:translateY(0);opacity:1;pointer-events:all}
+.toast-undo span{font-size:13px;color:#cbd5e1}
+.toast-undo button{background:none;border:none;color:#60a5fa;font-size:14px;font-weight:700;cursor:pointer;padding:4px 8px}
+
+/* EMOJI PICKER */
+.emoji-picker-wrap{display:flex;flex-wrap:wrap;gap:7px;margin-top:4px}
+.ep-btn{font-size:22px;background:#080c14;border:2px solid #1e2530;border-radius:10px;padding:6px 8px;cursor:pointer;transition:border-color .15s}
+.ep-btn.sel{border-color:#60a5fa}
+
+/* TIPO MOVIMIENTO CHIPS */
+.tipo-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px}
+.tipo-chip{padding:8px 14px;border-radius:99px;font-size:13px;font-weight:500;border:1px solid #1e2530;background:#0d1117;color:#666;cursor:pointer}
+.tipo-chip.sel{background:#1d4ed8;border-color:#1d4ed8;color:#fff}
+
+/* SN POR UNIDAD */
+.sn-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.sn-item{display:flex;align-items:center;gap:8px}
+.sn-item label{font-size:12px;color:#4a6080;white-space:nowrap;width:50px;flex-shrink:0}
+.sn-item input{flex:1;font-size:14px;padding:9px 12px}
+
+/* INNER TABS */
+.inner-tabs{display:flex;gap:6px;margin-bottom:14px}
+.inner-tab{padding:7px 14px;border-radius:99px;font-size:13px;font-weight:500;border:1px solid #1e2530;background:#0d1117;color:#4a6080;cursor:pointer}
+.inner-tab.active{background:linear-gradient(135deg,#1d4ed8,#2563eb);border-color:#1d4ed8;color:#fff}
+
+/* FECHA */
+.fecha-row{display:flex;gap:8px;margin-bottom:10px}
+.fecha-row input{flex:1;font-size:13px;padding:9px 12px}
+
+
+/* STATS */
+.stats-resumen{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:18px}
+.stat-kpi{border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:4px}
+.stat-kpi .kpi-icon{font-size:22px;line-height:1;margin-bottom:4px}
+.stat-kpi .kpi-val{font-size:28px;font-weight:800;line-height:1}
+.stat-kpi .kpi-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;opacity:.7}
+.top-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #111827}
+.top-item:last-child{border-bottom:none}
+.top-bar-wrap{flex:1}
+.top-bar-bg{background:#111827;border-radius:99px;height:6px;margin-top:4px;overflow:hidden}
+.top-bar-fill{height:6px;border-radius:99px;transition:width .4s}
+.critico-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #111827}
+.critico-item:last-child{border-bottom:none}
+/* FOTO */
+.foto-preview{width:100%;max-height:180px;object-fit:cover;border-radius:10px;border:1px solid #1e2530}
+.foto-thumb{width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid #1e2530;cursor:pointer}
+.foto-lazy{background:#1a1a1a}
+
+/* SEMANA */
+.semana-card{background:#0d1117;border:1px solid #1e3a5f;border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.semana-title{font-size:12px;color:#60a5fa;font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em}
+.semana-row{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid #111827}
+.semana-row:last-child{border-bottom:none}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div><h1>⚡ SolarStock</h1><p>Gestión de inventario</p></div>
+  <div id="resumen-header"></div>
+</div>
+
+<div class="content">
+  <div id="msg-global" class="msg"></div>
+  <div id="alert-banner" class="alert-banner"></div>
+
+  <!-- STOCK -->
+  <div class="section active" id="tab-stock">
+    <div id="stock-container"></div>
+  </div>
+
+  <!-- AGREGAR STOCK -->
+  <div class="section" id="tab-addstock">
+    <div class="card">
+      <h3>📥 Agregar stock</h3>
+      <div id="msg-addstock" class="msg"></div>
+      <div class="form-group"><label>Fecha</label><input type="date" id="as-fecha"/></div>
+      <div class="form-group"><label>Quién entrega</label><input type="text" id="as-entrega" placeholder="Proveedor o persona"/></div>
+      <div class="form-group"><label>Quién recibe</label><input type="text" id="as-recibe" placeholder="Técnico o bodega"/></div>
+      <div class="form-group"><label>Observación (opcional)</label><input type="text" id="as-obs" placeholder="Ej: Factura N°123"/></div>
+      <div class="form-group">
+        <label>📷 Foto (opcional)</label>
+        <input type="file" id="as-foto" accept="image/*" capture="environment" style="font-size:13px;padding:8px" onchange="previewFoto('as-foto','as-foto-preview')"/>
+        <div id="as-foto-preview" style="margin-top:8px"></div>
+      </div>
+      <div id="as-items-list" style="margin-bottom:12px"></div>
+      <button class="btn" style="background:#080c14;color:#60a5fa;border:1px dashed #1e3a5f;margin-bottom:12px" onclick="asAgregarItem()">+ Agregar producto</button>
+      <button class="btn btn-success" onclick="guardarAddStock()">↓ Registrar entrada</button>
+    </div>
+  </div>
+
+  <!-- MOVIMIENTO -->
+  <div class="section" id="tab-movimiento">
+    <div class="card">
+      <h3>↕️ Movimiento</h3>
+      <div id="msg-mov" class="msg"></div>
+      <div class="form-group"><label>Tipo de movimiento</label>
+        <div class="tipo-chips" id="tipo-chips">
+          <div class="tipo-chip" data-tipo="instalacion" onclick="selTipo(this)">🌵 Instalación en planta</div>
+          <div class="tipo-chip" data-tipo="entrega" onclick="selTipo(this)">👤 Entrega a técnico</div>
+          <div class="tipo-chip" data-tipo="traspaso" onclick="selTipo(this)">🔄 Traspaso</div>
+          <div class="tipo-chip" data-tipo="recuperacion" onclick="selTipo(this)">↩ Recuperación</div>
+          <div class="tipo-chip" data-tipo="traslado" onclick="selTipo(this)">🚛 Traslado</div>
+          <div class="tipo-chip" data-tipo="devolucion" onclick="selTipo(this)">📦 Devolución</div>
+          <div class="tipo-chip" data-tipo="baja" onclick="selTipo(this)">🗑 Baja</div>
+        </div>
+      </div>
+      <div class="form-group"><label>Destino / Origen</label><input type="text" id="mov-destino" placeholder="Ej: Planta Norte, Técnico Juan"/></div>
+      <div class="form-group"><label>Fecha</label><input type="date" id="mov-fecha"/></div>
+      <div class="form-group"><label>Quién entrega</label><input type="text" id="mov-entrega" placeholder="Nombre"/></div>
+      <div class="form-group"><label>Quién recibe</label><input type="text" id="mov-recibe" placeholder="Nombre"/></div>
+      <div class="form-group"><label>Observación (opcional)</label><input type="text" id="mov-obs" placeholder="Ej: Comisionamiento"/></div>
+      <div class="form-group">
+        <label>📷 Foto (opcional)</label>
+        <input type="file" id="mov-foto" accept="image/*" capture="environment" style="font-size:13px;padding:8px" onchange="previewFoto('mov-foto','mov-foto-preview')"/>
+        <div id="mov-foto-preview" style="margin-top:8px"></div>
+      </div>
+      <div id="mov-items-list" style="margin-bottom:12px"></div>
+      <button class="btn" style="background:#080c14;color:#60a5fa;border:1px dashed #1e3a5f;margin-bottom:12px" onclick="movAgregarItem()">+ Agregar producto</button>
+      <button class="btn btn-danger" onclick="guardarMovimiento()">↑ Registrar movimiento</button>
+    </div>
+  </div>
+
+  <!-- HISTORIAL -->
+  <div class="section" id="tab-historial">
+    <div class="search-row">
+      <input type="text" id="hist-q" placeholder="Buscar producto, SN, planta..." oninput="renderHistorial()"/>
+      <select id="hist-tipo" onchange="renderHistorial()">
+        <option value="">Todos</option>
+        <option value="stock">Ingresos</option>
+        <option value="instalacion">Instalación</option>
+        <option value="entrega">Entrega</option>
+        <option value="traspaso">Traspaso</option>
+        <option value="recuperacion">Recuperación</option>
+        <option value="traslado">Traslado</option>
+        <option value="devolucion">Devolución</option>
+        <option value="baja">Baja</option>
+      </select>
+    </div>
+    <div class="fecha-row">
+      <input type="date" id="hist-desde" onchange="renderHistorial()"/>
+      <input type="date" id="hist-hasta" onchange="renderHistorial()"/>
+    </div>
+    <div class="mov-list" id="tabla-historial"></div>
+  </div>
+
+  <!-- PLANTAS -->
+  <div class="section" id="tab-plantas">
+    <div class="inner-tabs">
+      <button class="inner-tab active" onclick="showInnerTab('plantas-ver')">Ver plantas</button>
+      <button class="inner-tab" onclick="showInnerTab('plantas-add')">+ Agregar</button>
+    </div>
+    <div id="plantas-ver">
+      <div class="search-row">
+        <input type="text" id="plantas-q" placeholder="Buscar planta o producto..." oninput="renderPlantas()"/>
+      </div>
+      <div id="tabla-plantas"></div>
+    </div>
+    <div id="plantas-add" style="display:none">
+      <div class="card" style="text-align:center;padding:24px 16px">
+        <div style="font-size:32px;margin-bottom:8px">🌵</div>
+        <div style="font-size:14px;color:#ccc;margin-bottom:16px">Registra un movimiento de tipo "Instalación en planta"</div>
+        <button class="btn btn-primary" onclick="abrirMovDesdeTab('instalacion')">+ Registrar instalación</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="section" id="tab-stats">
+    <!-- 1. Resumen general -->
+    <div class="stats-resumen" id="stats-resumen"></div>
+
+    <!-- 2. Top productos más movidos -->
+    <div class="card" style="margin-bottom:12px">
+      <h3 style="margin-bottom:14px">🔥 Más movidos (30 días)</h3>
+      <div id="stats-top"></div>
+    </div>
+
+    <!-- 3. Stock crítico -->
+    <div class="card">
+      <h3 style="margin-bottom:14px">⚠️ Stock crítico</h3>
+      <div id="stats-critico"></div>
+    </div>
+  </div>
+
+  <!-- EXPORTAR -->
+  <div class="section" id="tab-exportar">
+    <div class="card">
+      <h3>Descargar datos</h3>
+      <button class="btn btn-export" onclick="descargarStockCSV()">📥 Stock actual (.csv)</button>
+      <button class="btn btn-export" onclick="descargarHistorialCSV()">📥 Historial (.csv)</button>
+      <button class="btn btn-export" onclick="descargarInstalacionesCSV()">📥 Instalaciones (.csv)</button>
+      <button class="btn btn-export" style="border-color:#1d4ed8;color:#60a5fa" onclick="descargarPDF()">🖨 Reporte completo (PDF)</button>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <h3>💾 Respaldo</h3>
+      <p style="font-size:13px;color:#666;margin-bottom:14px;line-height:1.5">Guarda stock, historial e instalaciones. Las fotos van en respaldo separado.</p>
+      <button class="btn btn-export" style="border-color:#60a5fa;color:#60a5fa" onclick="exportarRespaldo()">💾 Guardar respaldo (datos)</button>
+      <div style="margin-top:10px">
+        <label style="font-size:12px;color:#666;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px">Restaurar desde respaldo</label>
+        <input type="file" id="input-restaurar" accept=".json" style="font-size:13px;padding:8px" onchange="importarRespaldo(this)"/>
+      </div>
+      <div id="msg-restaurar" class="msg" style="margin-top:10px"></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <h3>📷 Fotos</h3>
+      <button class="btn btn-export" style="border-color:#34d399;color:#34d399" onclick="exportarRespaldoFotos()">📷 Exportar fotos</button>
+      <div style="margin-top:10px">
+        <label style="font-size:12px;color:#666;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:6px">Restaurar fotos</label>
+        <input type="file" id="input-restaurar-fotos" accept=".json" style="font-size:13px;padding:8px" onchange="importarRespaldoFotos(this)"/>
+      </div>
+      <div id="msg-restaurar-fotos" class="msg" style="margin-top:10px"></div>
+    </div>
+    <div class="card" style="margin-top:12px;border-color:#7f1d1d">
+      <h3 style="color:#f87171">⚠ Zona peligrosa</h3>
+      <p style="font-size:13px;color:#4a6080;margin-bottom:14px;line-height:1.5">Borra todos los datos y vuelve al estado inicial.</p>
+      <button class="btn" style="background:#2d1212;color:#f87171;border:1px solid #7f1d1d" onclick="resetearApp()">🗑 Borrar todo y comenzar de nuevo</button>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" onclick="showTab('stock')" id="nav-stock"><span class="icon">📦</span><span>Stock</span></button>
+  <button class="nav-btn" onclick="showTab('historial')" id="nav-historial"><span class="icon">📋</span><span>Historial</span></button>
+  <button class="nav-btn" onclick="showTab('plantas')" id="nav-plantas"><span class="icon">🌵</span><span>Plantas</span></button>
+  <button class="nav-btn" onclick="showTab('stats')" id="nav-stats"><span class="icon">📊</span><span>Stats</span></button>
+  <button class="nav-btn" onclick="showTab('exportar')" id="nav-exportar"><span class="icon">⚙️</span><span>Más</span></button>
+</nav>
+
+<!-- TOAST -->
+<div class="toast-undo" id="toast-undo">
+  <span id="toast-msg">Eliminado</span>
+  <button onclick="deshacerEliminacion()">↩ Deshacer</button>
+</div>
+
+<!-- FAB -->
+<div class="fab-overlay" id="fab-overlay" onclick="cerrarFab()"></div>
+<div class="fab-menu" id="fab-menu">
+  <div class="fab-item">
+    <span class="fab-label">Eliminar producto</span>
+    <button class="fab-icon" style="background:#2d1212;border:1px solid #7f1d1d" onclick="cerrarFab();abrirEliminarProducto()">🗑</button>
+  </div>
+  <div class="fab-item">
+    <span class="fab-label">Registrar movimiento</span>
+    <button class="fab-icon" style="background:#7f1d1d" onclick="cerrarFab();showTab('movimiento')">↕️</button>
+  </div>
+  <div class="fab-item">
+    <span class="fab-label">Ingresar stock</span>
+    <button class="fab-icon" style="background:#1d4ed8" onclick="cerrarFab();showTab('addstock')">📥</button>
+  </div>
+  <div class="fab-item">
+    <span class="fab-label">Nuevo producto</span>
+    <button class="fab-icon" style="background:#065f46" onclick="cerrarFab();abrirNuevoProducto()">📦</button>
+  </div>
+</div>
+<button class="fab" id="fab-btn" onclick="toggleFab()">+</button>
+
+<!-- MODAL NUEVO PRODUCTO -->
+<div class="modal-overlay" id="modal-nuevo-prod" style="z-index:400">
+  <div class="modal-grande">
+    <h4>📦 Nuevo producto</h4>
+    <div class="form-group"><label>Nombre</label><input type="text" id="np-nombre" placeholder="Ej: Dongle LTE" autocapitalize="words"/></div>
+    <div class="form-group">
+      <label>Categoría</label>
+      <input type="text" id="np-categoria" list="cat-list" placeholder="Ej: Comunicación"/>
+      <datalist id="cat-list"></datalist>
+    </div>
+    <div class="form-group"><label>Emoji</label>
+      <div class="emoji-picker-wrap" id="emoji-picker">
+        <input type="hidden" id="np-emoji" value="📦">
+      </div>
+    </div>
+    <div class="form-group"><label>¿Usa número de serie?</label>
+      <div style="display:flex;gap:10px;margin-top:4px">
+        <button type="button" id="sn-si" onclick="setSN(true)" style="flex:1;padding:10px;border-radius:10px;border:1px solid #1e2530;background:#080c14;color:#666;font-size:14px;cursor:pointer">✓ Sí</button>
+        <button type="button" id="sn-no" onclick="setSN(false)" style="flex:1;padding:10px;border-radius:10px;border:1px solid #1e2530;background:#080c14;color:#666;font-size:14px;cursor:pointer">✗ No</button>
+      </div>
+    </div>
+    <div id="msg-np" class="msg"></div>
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button class="btn btn-primary" onclick="crearProducto()">Crear producto</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('modal-nuevo-prod').classList.remove('open')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SELECTOR PRODUCTO -->
+<div class="modal-overlay" id="modal-selector-prod" style="z-index:450">
+  <div class="modal-grande">
+    <h4>Seleccionar producto</h4>
+    <input type="text" id="sel-prod-busq" placeholder="Buscar..." oninput="renderSelectorProductos()" style="margin-bottom:12px;font-size:14px;padding:10px 13px"/>
+    <div id="sel-prod-lista"></div>
+    <button class="btn btn-ghost" style="margin-top:10px" onclick="document.getElementById('modal-selector-prod').classList.remove('open')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL DETALLE PRODUCTO -->
+<div class="modal-overlay" id="modal-detalle" style="z-index:400">
+  <div class="modal-grande">
+    <div id="detalle-header" style="text-align:center;margin-bottom:16px"></div>
+    <div id="detalle-cuerpo"></div>
+    <button class="btn btn-ghost" style="margin-top:12px" onclick="document.getElementById('modal-detalle').classList.remove('open')">Cerrar</button>
+  </div>
+</div>
+
+<!-- MODAL ELIMINAR PRODUCTO -->
+<div class="modal-overlay" id="modal-eliminar-prod" style="z-index:400">
+  <div class="modal-grande">
+    <h4>🗑 Eliminar producto</h4>
+    <p style="font-size:13px;color:#4a6080;margin-bottom:14px">Selecciona el producto que deseas eliminar.</p>
+    <div id="lista-eliminar-prod"></div>
+    <button class="btn btn-ghost" style="margin-top:10px" onclick="document.getElementById('modal-eliminar-prod').classList.remove('open')">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL DETALLE KPI -->
+<div class="modal-overlay" id="modal-kpi" style="z-index:450">
+  <div class="modal-grande">
+    <h4 id="kpi-modal-titulo"></h4>
+    <div id="kpi-modal-cuerpo" style="margin-top:12px"></div>
+    <button class="btn btn-ghost" style="margin-top:14px" onclick="document.getElementById('modal-kpi').classList.remove('open')">Cerrar</button>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMACION -->
+<div class="modal-overlay" id="modal-overlay" style="z-index:500">
+  <div class="modal">
+    <h4 id="modal-titulo"></h4>
+    <p id="modal-texto"></p>
+    <div class="modal-btns" id="modal-btns"></div>
+  </div>
+</div>
+
+<!-- BIENVENIDA -->
+<div class="modal-overlay" id="modal-bienvenida" style="z-index:600;align-items:center;padding:20px">
+  <div style="background:#0d1117;border:1px solid #1e2530;border-radius:20px;padding:28px 20px;width:100%;max-width:400px;text-align:center">
+    <div style="font-size:48px;margin-bottom:12px">⚡</div>
+    <div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:6px">👋 Hola, gracias por utilizar la versión de prueba de SolarStock ⚡</div>
+    <div style="font-size:13px;color:#4a6080;margin:12px 0 24px;line-height:1.6">¿Cómo deseas comenzar?</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button class="btn btn-primary" onclick="bienvenidaImportar()">📄 Importar inventario desde CSV</button>
+      <button class="btn" style="background:#052e16;color:#4ade80;border:1px solid #14532d" onclick="bienvenidaVacio()">📝 Comenzar con inventario vacío</button>
+      <button class="btn" style="background:#0c1a3a;color:#60a5fa;border:1px solid #1d4ed8" onclick="bienvenidaRestaurar()">♻️ Restaurar respaldo JSON</button>
+    </div>
+    <input type="file" id="bv-csv" accept=".csv" style="display:none" onchange="bienvenidaProcesarCSV(this)"/>
+    <input type="file" id="bv-json" accept=".json" style="display:none" onchange="bienvenidaProcesarJSON(this)"/>
+    <div id="msg-bienvenida" class="msg" style="margin-top:12px;text-align:left"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONSTANTES
+// ============================================================
+const STORAGE_KEY = 'solarstock_v7';
+const KEYS_LEGACY = ['solarstock_v4_clean','solarstock_v5','solarstock_v6'];
+const FOTO_DB_NAME = 'solarstock_fotos_db';
+const FOTO_STORE = 'fotos';
+const MAT_CON_SN_DEFAULT = ['SIM','DONGLE','SMARTLOGGER']; // fallback para registros migrados
+const EMOJIS_LISTA = ['📦','🔋','⚡','🔌','📡','🖥️','☀️','🌐','🧰','🔩','🛠️','📷','📶','⏱️','🔗','🖲️','💡','🔦','📟','🛰️','🔧','🗜️','🔑','📲','🖨️'];
+const TIPOS_MOV = {
+  stock:       {label:'Ingreso',       color:'#4ade80'},
+  instalacion: {label:'Instalación',   color:'#f87171'},
+  entrega:     {label:'Entrega',       color:'#f87171'},
+  traspaso:    {label:'Traspaso',      color:'#a78bfa'},
+  recuperacion:{label:'Recuperación',  color:'#38bdf8'},
+  traslado:    {label:'Traslado',      color:'#a78bfa'},
+  devolucion:  {label:'Devolución',    color:'#38bdf8'},
+  baja:        {label:'Baja',          color:'#f87171'},
+  // compatibilidad con registros anteriores
+  ENTRADA:     {label:'Ingreso',       color:'#4ade80'},
+  SALIDA:      {label:'Salida',        color:'#f87171'},
+};
+
+// ============================================================
+// ESTADO
+// ============================================================
+let state = null;
+
+function estadoVacio() {
+  return {
+    version: 7,
+    productos: [],      // [{id, nombre, categoria, emoji, usaSN}]
+    categorias: [],     // ['Comunicación', 'Eléctrico', ...]
+    stock: {},          // {productoId: cantidad}
+    historial: [],      // [{id, tipo, fecha, destino, entrega, recibe, obs, fotoId, items:[{productoId,nombre,cantidad,sn:[]}]}]
+    nextId: 1,
+  };
+}
+
+// ============================================================
+// PERSISTENCIA
+// ============================================================
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) { console.error('saveState', e); }
+}
+
+function loadState() {
+  // Intentar migrar desde versiones anteriores
+  const migrado = migrarLegacy();
+
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      state = JSON.parse(saved);
+      // Asegurar campos nuevos
+      if (!state.productos) state.productos = [];
+      if (!state.categorias) state.categorias = [];
+      if (!state.stock) state.stock = {};
+      if (!state.historial) state.historial = [];
+      if (!state.nextId) state.nextId = 1;
+    } else {
+      state = estadoVacio();
+      saveState();
+      initUI();
+      mostrarBienvenida();
+      return;
+    }
+  } catch(e) {
+    state = estadoVacio();
+    saveState();
+  }
+  initUI();
+  renderAll();
+  migrarFotosViejas();
+}
+
+// Migra datos de versiones antiguas preservando información real del usuario
+function migrarLegacy() {
+  if (localStorage.getItem(STORAGE_KEY)) return false; // ya está en v7
+  for (const key of KEYS_LEGACY) {
+    const raw = localStorage.getItem(key);
+    if (!raw) continue;
+    try {
+      const old = JSON.parse(raw);
+      const tieneHistorial = (old.historial||[]).length > 0;
+      const tieneInstalaciones = (old.instalaciones||[]).length > 0;
+      const tieneStock = Object.values(old.stock||{}).some(v=>v>0);
+      if (!tieneHistorial && !tieneInstalaciones && !tieneStock) {
+        localStorage.removeItem(key);
+        return false; // vacío, mostrar bienvenida
+      }
+      // Tiene datos reales → convertir al nuevo formato
+      const nuevo = estadoVacio();
+      // Productos desde stock viejo
+      const matEmoji = old.matEmoji || {};
+      Object.entries(old.stock||{}).forEach(([nombre, qty]) => {
+        const id = 'p_' + nombre.toLowerCase();
+        nuevo.productos.push({ id, nombre, categoria: 'Importado', emoji: matEmoji[nombre]||'📦', usaSN: MAT_CON_SN_DEFAULT.includes(nombre) });
+        nuevo.stock[id] = qty;
+      });
+      nuevo.categorias = ['Importado'];
+      // Historial viejo
+      let nid = 1;
+      ;(old.historial||[]).forEach(r => {
+        const prod = nuevo.productos.find(p=>p.nombre===r.material);
+        nuevo.historial.push({
+          id: nid++,
+          tipo: r.tipo==='ENTRADA'?'stock':r.tipo==='SALIDA'?'instalacion':r.tipo,
+          fecha: r.fecha,
+          destino: r.notas||'',
+          entrega: r.tecnico||'',
+          recibe: '',
+          obs: r.notas||'',
+          fotoId: r.fotoId||null,
+          items: [{ productoId: prod?prod.id:r.material, nombre: r.material, cantidad: r.cantidad, sn:[] }]
+        });
+      });
+      // Instalaciones viejas → historial tipo instalacion
+      ;(old.instalaciones||[]).forEach(i => {
+        const prod = nuevo.productos.find(p=>p.nombre===i.material);
+        nuevo.historial.push({
+          id: nid++,
+          tipo: 'instalacion',
+          fecha: i.fecha||new Date().toISOString(),
+          destino: i.planta||'',
+          entrega: i.tecnico||'',
+          recibe: '',
+          obs: i.notas||'',
+          fotoId: i.fotoId||null,
+          items: [{ productoId: prod?prod.id:i.material, nombre: i.material, cantidad: parseInt(i.cantidad)||1, sn: i.ns&&i.ns!=='-'?[i.ns]:[] }]
+        });
+      });
+      nuevo.nextId = nid + 1;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(nuevo));
+      localStorage.removeItem(key);
+      return true;
+    } catch(e) { console.error('migrarLegacy', e); }
+  }
+  return false;
+}
+
+// ============================================================
+// IndexedDB — FOTOS
+// ============================================================
+let _fotoDB = null;
+function abrirFotoDB() {
+  return new Promise((resolve, reject) => {
+    if (_fotoDB) { resolve(_fotoDB); return; }
+    const req = indexedDB.open(FOTO_DB_NAME, 1);
+    req.onupgradeneeded = () => { const db=req.result; if(!db.objectStoreNames.contains(FOTO_STORE)) db.createObjectStore(FOTO_STORE); };
+    req.onsuccess = () => { _fotoDB=req.result; resolve(_fotoDB); };
+    req.onerror = () => reject(req.error);
+  });
+}
+async function guardarFotoDB(id, dataUrl) {
+  const db = await abrirFotoDB();
+  return new Promise((res,rej)=>{ const tx=db.transaction(FOTO_STORE,'readwrite'); tx.objectStore(FOTO_STORE).put(dataUrl,id); tx.oncomplete=()=>res(true); tx.onerror=()=>rej(tx.error); });
+}
+async function obtenerFotoDB(id) {
+  if (!id) return null;
+  try { const db=await abrirFotoDB(); return new Promise(res=>{ const tx=db.transaction(FOTO_STORE,'readonly'); const r=tx.objectStore(FOTO_STORE).get(id); r.onsuccess=()=>res(r.result||null); r.onerror=()=>res(null); }); } catch(e){ return null; }
+}
+async function borrarFotoDB(id) { if(!id) return; try{ const db=await abrirFotoDB(); const tx=db.transaction(FOTO_STORE,'readwrite'); tx.objectStore(FOTO_STORE).delete(id); }catch(e){} }
+function previewFoto(inputId, previewId) {
+  const file=document.getElementById(inputId).files[0]; const preview=document.getElementById(previewId);
+  if(!file){preview.innerHTML='';return;}
+  const r=new FileReader(); r.onload=e=>{preview.innerHTML=`<img src="${e.target.result}" class="foto-preview"/>`;};  r.readAsDataURL(file);
+}
+function leerFoto(inputId) {
+  return new Promise(resolve=>{
+    const file=document.getElementById(inputId).files[0]; if(!file){resolve(null);return;}
+    const r=new FileReader(); r.onload=async e=>{
+      const dataUrl=e.target.result; const fotoId='foto_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+      try{await guardarFotoDB(fotoId,dataUrl);resolve(fotoId);}catch(err){resolve(null);}
+    }; r.readAsDataURL(file);
+  });
+}
+function resetFoto(inputId,previewId){document.getElementById(inputId).value='';document.getElementById(previewId).innerHTML='';}
+async function migrarFotosViejas() {
+  if(!state.historial) return; let migrado=false;
+  for(const r of state.historial){
+    if(r.foto&&!r.fotoId){const fotoId='foto_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);try{await guardarFotoDB(fotoId,r.foto);r.fotoId=fotoId;delete r.foto;migrado=true;}catch(e){}}
+  }
+  if(migrado){saveState();renderHistorial();}
+}
+async function exportarRespaldoFotos() {
+  try{
+    const db=await abrirFotoDB(); const tx=db.transaction(FOTO_STORE,'readonly'); const fotos={};
+    await new Promise((res,rej)=>{const req=tx.objectStore(FOTO_STORE).openCursor();req.onsuccess=e=>{const c=e.target.result;if(c){fotos[c.key]=c.value;c.continue();}else res();};req.onerror=()=>rej(req.error);});
+    const total=Object.keys(fotos).length; if(!total){showMsg('msg-restaurar-fotos','No hay fotos guardadas','err');return;}
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(fotos)],{type:'application/json'}));a.download=`solarstock_fotos_${hoyISO()}.json`;a.click();
+    showMsg('msg-restaurar-fotos',`${total} foto(s) exportada(s)`,'ok');
+  }catch(e){showMsg('msg-restaurar-fotos','Error al exportar fotos','err');}
+}
+function importarRespaldoFotos(input) {
+  const file=input.files[0]; if(!file) return;
+  const r=new FileReader(); r.onload=async e=>{
+    try{const fotos=JSON.parse(e.target.result);const claves=Object.keys(fotos);
+      abrirModal('¿Restaurar fotos?',`Se importarán ${claves.length} foto(s).`,[{cls:'btn-success',label:'✓ Importar',action:async()=>{
+        for(const id of claves) await guardarFotoDB(id,fotos[id]);
+        showMsg('msg-restaurar-fotos',`${claves.length} foto(s) restaurada(s)`,'ok');renderHistorial();input.value='';
+      }}]);
+    }catch(err){showMsg('msg-restaurar-fotos','Error al leer el archivo','err');}
+  }; r.readAsText(file);
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function hoyISO() { return new Date().toISOString().slice(0,10); }
+function fmtFecha(s) { if(!s) return '-'; try{return new Date(s).toLocaleDateString('es-CL');}catch(e){return s;} }
+function showMsg(id,text,type){const el=document.getElementById(id);if(!el)return;el.textContent=text;el.className='msg '+type;setTimeout(()=>{el.className='msg';},3500);}
+function getProd(id){return state.productos.find(p=>p.id===id)||null;}
+function getProdNombre(id){const p=getProd(id);if(p) return p.nombre; const pn=state.productos.find(x=>x.nombre===id);return pn?pn.nombre:id||'?';}
+function getProdEmoji(id){const p=getProd(id);if(p) return p.emoji; const pn=state.productos.find(x=>x.nombre===id);return pn?pn.emoji:'📦';}
+function prodUsaSN(id){const p=getProd(id);if(p) return p.usaSN;return MAT_CON_SN_DEFAULT.includes(id);}
+function stockDe(id){return state.stock[id]||0;}
+
+// ============================================================
+// INIT UI
+// ============================================================
+function initUI() {
+  initEmojiPicker();
+  document.getElementById('as-fecha').value = hoyISO();
+  document.getElementById('mov-fecha').value = hoyISO();
+  setSN(false);
+  asRenderItems();
+  movRenderItems();
+}
+
+function renderAll() {
+  renderStock();
+  renderHistorial();
+  renderPlantas();
+  renderStats();
+  renderHeaderResumen();
+  renderAlertas();
+  actualizarCatList();
+}
+
+// ============================================================
+// ALERTAS
+// ============================================================
+function renderAlertas() {
+  const bajos = state.productos.filter(p => {
+    const min = p.stockMin; const qty = stockDe(p.id);
+    return min !== undefined && qty <= min;
+  });
+  const b = document.getElementById('alert-banner');
+  if (bajos.length) { b.innerHTML = bajos.map(p=>`⚠️ ${p.emoji} ${p.nombre}: quedan ${stockDe(p.id)}`).join('<br>'); b.classList.add('visible'); }
+  else b.classList.remove('visible');
+}
+
+function renderHeaderResumen() {
+  const hace7=new Date();hace7.setDate(hace7.getDate()-7);
+  const ult=state.historial.filter(r=>new Date(r.fecha)>=hace7);
+  const ent=ult.filter(r=>r.tipo==='stock').reduce((s,r)=>s+(r.items||[]).reduce((a,i)=>a+i.cantidad,0),0);
+  const sal=ult.filter(r=>r.tipo!=='stock').reduce((s,r)=>s+(r.items||[]).reduce((a,i)=>a+i.cantidad,0),0);
+  const plantas=[...new Set(state.historial.filter(r=>r.tipo==='instalacion').map(r=>r.destino))].filter(Boolean).length;
+  const prods=state.productos.length;
+  document.getElementById('resumen-header').innerHTML=[
+    `<span style="color:#60a5fa">📦 ${prods}</span>`,
+    `<span style="color:#34d399">🌵 ${plantas}</span>`,
+    `<span style="color:#4ade80">↓${ent}</span>`,
+    `<span style="color:#f87171">↑${sal}</span>`,
+  ].join('<span style="color:#1e2530"> · </span>');
+}
+
+// ============================================================
+// EMOJI PICKER
+// ============================================================
+function initEmojiPicker() {
+  const picker=document.getElementById('emoji-picker');
+  picker.innerHTML=EMOJIS_LISTA.map(e=>`<button type="button" class="ep-btn" id="ep_${e.codePointAt(0)}" onclick="selectEmoji('${e}')">${e}</button>`).join('')+`<input type="hidden" id="np-emoji" value="📦">`;
+  selectEmoji('📦');
+}
+function selectEmoji(e) {
+  document.querySelectorAll('.ep-btn').forEach(b=>b.classList.remove('sel'));
+  const btn=document.getElementById('ep_'+e.codePointAt(0));if(btn)btn.classList.add('sel');
+  const h=document.getElementById('np-emoji');if(h)h.value=e;
+}
+
+// ============================================================
+// CATEGORÍAS DINÁMICAS
+// ============================================================
+function actualizarCatList() {
+  const dl=document.getElementById('cat-list');
+  if(dl) dl.innerHTML=state.categorias.map(c=>`<option value="${c}">`).join('');
+}
+function agregarCategoria(cat) {
+  const c=cat.trim();
+  if(c && !state.categorias.includes(c)){state.categorias.push(c);state.categorias.sort();}
+}
+
+// ============================================================
+// SN TOGGLE EN FORMULARIO NUEVO PRODUCTO
+// ============================================================
+let _npUsaSN = false;
+function setSN(val) {
+  _npUsaSN = val;
+  const si=document.getElementById('sn-si'), no=document.getElementById('sn-no');
+  if(val){si.style.background='#1d4ed8';si.style.color='#fff';si.style.borderColor='#1d4ed8';no.style.background='#080c14';no.style.color='#666';no.style.borderColor='#1e2530';}
+  else{no.style.background='#1d4ed8';no.style.color='#fff';no.style.borderColor='#1d4ed8';si.style.background='#080c14';si.style.color='#666';si.style.borderColor='#1e2530';}
+}
+
+// ============================================================
+// CREAR PRODUCTO
+// ============================================================
+function abrirNuevoProducto() {
+  document.getElementById('np-nombre').value = '';
+  document.getElementById('np-categoria').value = '';
+  selectEmoji('📦');
+  setSN(false);
+  document.getElementById('msg-np').className = 'msg';
+  document.getElementById('modal-nuevo-prod').classList.add('open');
+  setTimeout(() => document.getElementById('np-nombre').focus(), 300);
+}
+
+function crearProducto() {
+  const nombre=document.getElementById('np-nombre').value.trim();
+  const categoria=document.getElementById('np-categoria').value.trim();
+  const emoji=document.getElementById('np-emoji').value||'📦';
+  if(!nombre){showMsg('msg-np','Ingresa un nombre','err');return;}
+  if(!categoria){showMsg('msg-np','Ingresa una categoría','err');return;}
+  const id='p_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+  if(state.productos.find(p=>p.nombre.toLowerCase()===nombre.toLowerCase())){showMsg('msg-np','Ya existe un producto con ese nombre','err');return;}
+  state.productos.push({id,nombre,categoria,emoji,usaSN:_npUsaSN});
+  state.stock[id]=0;
+  agregarCategoria(categoria);
+  saveState();renderAll();
+  document.getElementById('modal-nuevo-prod').classList.remove('open');
+  showMsg('msg-global',`Producto "${nombre}" creado`,'ok');
+}
+
+// ============================================================
+// RENDER STOCK AGRUPADO POR CATEGORÍA
+// ============================================================
+// Paleta de colores para categorías — se asigna automáticamente y es consistente
+const CAT_PALETA = [
+  {bg:'#0f2744', color:'#60a5fa', label:'#93c5fd', border:'#1e3a5f'},  // azul
+  {bg:'#0f2a1a', color:'#34d399', label:'#6ee7b7', border:'#14532d'},  // verde
+  {bg:'#2a1f00', color:'#fbbf24', label:'#fcd34d', border:'#78350f'},  // amarillo
+  {bg:'#1a0f33', color:'#a78bfa', label:'#c4b5fd', border:'#4c1d95'},  // violeta
+  {bg:'#2a1500', color:'#fb923c', label:'#fdba74', border:'#7c2d12'},  // naranja
+  {bg:'#0f2233', color:'#38bdf8', label:'#7dd3fc', border:'#0c4a6e'},  // celeste
+  {bg:'#1a1a2e', color:'#818cf8', label:'#a5b4fc', border:'#3730a3'},  // índigo
+  {bg:'#1a2a0f', color:'#86efac', label:'#bbf7d0', border:'#166534'},  // verde claro
+  {bg:'#2d1212', color:'#f87171', label:'#fca5a5', border:'#7f1d1d'},  // rojo
+  {bg:'#1a1f2e', color:'#94a3b8', label:'#cbd5e1', border:'#334155'},  // gris azul
+];
+
+function colorParaCategoria(cat) {
+  if (!cat || typeof cat !== 'string') return CAT_PALETA[0];
+  let hash = 0;
+  for (let i = 0; i < cat.length; i++) hash = (hash * 31 + cat.charCodeAt(i)) & 0xffff;
+  return CAT_PALETA[Math.abs(hash) % CAT_PALETA.length];
+}
+
+function renderStock() {
+  const container = document.getElementById('stock-container');
+  if (!state.productos.length) {
+    container.innerHTML = `<div style="text-align:center;color:#4a6080;padding:32px 0">
+      <div style="font-size:40px;margin-bottom:12px">📦</div>
+      <div style="font-size:14px">Aún no tienes productos.</div>
+      <div style="font-size:13px;margin-top:6px">Crea tu primer producto abajo.</div>
+    </div>`; return;
+  }
+  // Agrupar por categoría
+  const grupos = {};
+  state.productos.forEach(p => {
+    const cat = p.categoria || 'General';
+    if (!grupos[cat]) grupos[cat] = [];
+    grupos[cat].push(p);
+  });
+  container.innerHTML = Object.entries(grupos).sort(([a],[b]) => a.localeCompare(b)).map(([cat, prods]) => {
+    const paleta = colorParaCategoria(cat || 'General');
+    return `<div class="cat-group">
+      <div class="cat-title" style="color:${paleta.color}">${cat}</div>
+      <div class="stat-grid">${prods.map(p => {
+        const qty = stockDe(p.id);
+        const min = p.stockMin;
+        const critico = min !== undefined && qty <= Math.floor(min/2);
+        const bajo = min !== undefined && qty <= min && !critico;
+        // Color base de la categoría, con variación si hay alerta
+        const bg = critico ? '#2d0a0a' : bajo ? '#2a1800' : paleta.bg;
+        const color = critico ? '#f87171' : bajo ? '#f59e0b' : paleta.color;
+        const border = critico ? '#7f1d1d' : bajo ? '#78350f' : paleta.border;
+        return `<div class="stat-card" style="background:${bg};color:${color};border:1px solid ${border}" onclick="abrirDetalleProducto('${p.id}')">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+            <span style="font-size:11px;font-weight:700;color:${paleta.label};text-transform:uppercase;letter-spacing:.05em;line-height:1.3">${p.nombre}</span>
+          </div>
+          <span style="font-size:30px;display:block;margin:6px 0 4px">${p.emoji}</span>
+          <div style="font-size:32px;font-weight:800;color:${color}">${qty}</div>
+          <div style="font-size:11px;opacity:.6;margin-top:3px">unidades</div>
+          ${qty === 0 ? `<div style="font-size:10px;color:${paleta.color};opacity:.5;margin-top:4px">Sin stock</div>` : ''}
+        </div>`;
+      }).join('')}</div>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// DETALLE DE PRODUCTO
+// ============================================================
+function abrirDetalleProducto(prodId) {
+  const p=getProd(prodId);if(!p) return;
+  const qty=stockDe(prodId);
+  const movs=state.historial.filter(r=>(r.items||[]).some(i=>i.productoId===prodId));
+  const ent=movs.filter(r=>r.tipo==='stock').reduce((s,r)=>s+(r.items||[]).find(i=>i.productoId===prodId)?.cantidad||0,0);
+  const sal=movs.filter(r=>r.tipo!=='stock').reduce((s,r)=>s+(r.items||[]).find(i=>i.productoId===prodId)?.cantidad||0,0);
+
+  document.getElementById('detalle-header').innerHTML=`
+    <div style="font-size:52px;margin-bottom:6px">${p.emoji}</div>
+    <div style="font-size:18px;font-weight:800;color:#fff">${p.nombre}</div>
+    <div style="font-size:12px;color:#4a6080;margin-top:4px">${p.categoria} · ${p.usaSN?'Usa N/S':'Sin N/S'}</div>
+    <div style="font-size:32px;font-weight:800;color:#60a5fa;margin:8px 0">${qty}</div>
+    <div style="font-size:12px;color:#4a6080">unidades disponibles</div>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:12px">
+      <div style="background:#052e16;border:1px solid #14532d;border-radius:10px;padding:8px 16px;font-size:13px;color:#4ade80">↓ ${ent} ingresados</div>
+      <div style="background:#2d1212;border:1px solid #7f1d1d;border-radius:10px;padding:8px 16px;font-size:13px;color:#f87171">↑ ${sal} movidos</div>
+    </div>`;
+
+  const filasMov=movs.length?[...movs].reverse().map(r=>{
+    const item=(r.items||[]).find(i=>i.productoId===prodId);
+    const tipo=TIPOS_MOV[r.tipo]||{label:r.tipo,color:'#aaa'};
+    return `<div style="padding:10px 0;border-bottom:1px solid #1e2530">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+        <span class="badge badge-${r.tipo}" style="color:${tipo.color}">${tipo.label}</span>
+        <span style="font-size:13px;font-weight:700;color:#fff">× ${item?.cantidad||0}</span>
+        ${r.destino?`<span style="font-size:12px;color:#4a6080">${r.destino}</span>`:''}
+      </div>
+      ${item?.sn?.length?`<div style="font-size:11px;color:#4a6080">N/S: ${item.sn.join(', ')}</div>`:''}
+      <div style="font-size:11px;color:#3d4f63;margin-top:2px">${fmtFecha(r.fecha)}${r.entrega?' · 👤 '+r.entrega:''}</div>
+    </div>`;
+  }).join(''):`<div style="color:#4a6080;text-align:center;padding:20px">Sin movimientos registrados</div>`;
+
+  document.getElementById('detalle-cuerpo').innerHTML=`
+    <div style="display:flex;justify-content:space-between;margin-bottom:16px">
+      <button class="btn btn-danger" style="flex:1;margin-right:8px;padding:10px;font-size:13px" onclick="confirmarEliminarProducto('${prodId}');document.getElementById('modal-detalle').classList.remove('open')">🗑 Eliminar producto</button>
+    </div>
+    <div style="font-size:12px;color:#4a6080;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Historial</div>
+    ${filasMov}`;
+  document.getElementById('modal-detalle').classList.add('open');
+}
+
+// ============================================================
+// ELIMINAR PRODUCTO
+// ============================================================
+function abrirEliminarProducto() {
+  const lista=document.getElementById('lista-eliminar-prod');
+  lista.innerHTML=state.productos.map(p=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #1e2530">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:22px">${p.emoji}</span>
+        <div><div style="font-size:14px;font-weight:600;color:#fff">${p.nombre}</div>
+        <div style="font-size:12px;color:#4a6080">${p.categoria} · ${stockDe(p.id)} uds</div></div>
+      </div>
+      <button data-id="${p.id}" onclick="confirmarEliminarProducto(this.dataset.id)" style="background:#2d1212;border:1px solid #7f1d1d;color:#f87171;padding:8px 14px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer">🗑 Eliminar</button>
+    </div>`).join('');
+  document.getElementById('modal-eliminar-prod').classList.add('open');
+}
+
+function confirmarEliminarProducto(id) {
+  const p=getProd(id);if(!p) return;
+  abrirModal('¿Eliminar producto?',`Esto eliminará "${p.nombre}" y su stock (${stockDe(id)} uds). El historial se conserva.`,[
+    {cls:'btn-danger',label:'🗑 Sí, eliminar',action:()=>{
+      const backup={prod:{...p},qty:stockDe(id)};
+      state.productos=state.productos.filter(x=>x.id!==id);
+      delete state.stock[id];
+      saveState();renderAll();
+      mostrarToast(`"${p.nombre}" eliminado`,()=>{state.productos.push(backup.prod);state.stock[id]=backup.qty;saveState();renderAll();});
+    }}
+  ]);
+}
+
+// ============================================================
+// MÓDULO AGREGAR STOCK
+// ============================================================
+let asItems = [];
+
+function asRenderItems() {
+  const list = document.getElementById('as-items-list');
+  if (!asItems.length) {
+    list.innerHTML = '<div style="color:#4a6080;font-size:13px;text-align:center;padding:12px;border:1px dashed #1e2530;border-radius:10px">Sin productos agregados</div>';
+    return;
+  }
+  list.innerHTML = asItems.map((item, i) => {
+    const p = getProd(item.prodId);
+    const snInputs = p && p.usaSN ? Array.from({length: item.cantidad}, (_, k) => `
+      <div class="sn-item">
+        <label>SN ${k+1}</label>
+        <input type="text" placeholder="Número de serie" value="${item.sn[k]||''}"
+          oninput="asUpdateSN(${i},${k},this.value)"
+          style="font-size:14px;padding:9px 12px"/>
+      </div>`).join('') : '';
+    return `<div style="background:#080c14;border:1px solid #1e2530;border-radius:12px;padding:14px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:24px">${p ? p.emoji : '📦'}</span>
+          <div>
+            <div style="font-weight:700;color:#fff;font-size:14px">${p ? p.nombre : item.prodId}</div>
+            <div style="font-size:11px;color:#4a6080">${p ? p.categoria : ''}</div>
+          </div>
+        </div>
+        <button onclick="asRemoveItem(${i})" style="background:none;border:none;color:#ef4444;font-size:20px;cursor:pointer;padding:4px">🗑</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:${snInputs ? '10px' : '0'}">
+        <label style="font-size:11px;color:#4a6080;font-weight:600;white-space:nowrap">CANTIDAD</label>
+        <input type="number" min="1" value="${item.cantidad}"
+          oninput="asUpdateCant(${i},this.value)"
+          style="width:90px;font-size:16px;padding:9px 12px;text-align:center"/>
+      </div>
+      ${snInputs ? `<div class="sn-list">${snInputs}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function asAgregarItem() {
+  if(!state.productos.length){showMsg('msg-addstock','Primero crea productos en la pestaña Stock','err');return;}
+  abrirSelectorProducto(prodId=>{
+    asItems.push({prodId,cantidad:1,sn:[]});
+    asRenderItems();
+  });
+}
+function asRemoveItem(i){asItems.splice(i,1);asRenderItems();}
+function asUpdateCant(i,val){asItems[i].cantidad=parseInt(val)||1;asItems[i].sn=asItems[i].sn.slice(0,asItems[i].cantidad);asRenderItems();}
+function asUpdateSN(i,k,val){asItems[i].sn[k]=val;}
+
+async function guardarAddStock() {
+  if(!asItems.length){showMsg('msg-addstock','Agrega al menos un producto','err');return;}
+  const fechaVal=document.getElementById('as-fecha').value;
+  const fecha=fechaVal?new Date(fechaVal+'T12:00:00').toISOString():new Date().toISOString();
+  const entrega=document.getElementById('as-entrega').value.trim();
+  const recibe=document.getElementById('as-recibe').value.trim();
+  const obs=document.getElementById('as-obs').value.trim();
+  const fotoId=await leerFoto('as-foto');
+
+  const registro={id:state.nextId++,tipo:'stock',fecha,destino:'',entrega,recibe,obs,fotoId,items:asItems.map(i=>({productoId:i.prodId,cantidad:i.cantidad,sn:[...i.sn]}))};
+  asItems.forEach(item=>{state.stock[item.prodId]=(state.stock[item.prodId]||0)+item.cantidad;}); // stock ok
+  state.historial.push(registro);
+  saveState();renderAll();
+  // Reset
+  asItems=[];asRenderItems();
+  document.getElementById('as-entrega').value='';
+  document.getElementById('as-recibe').value='';
+  document.getElementById('as-obs').value='';
+  document.getElementById('as-fecha').value=hoyISO();
+  resetFoto('as-foto','as-foto-preview');
+  showMsg('msg-addstock','Stock registrado correctamente','ok');
+  mostrarToast('Ingreso registrado',()=>{
+    state.historial.pop();
+    registro.items.forEach(item=>{state.stock[item.productoId]=Math.max(0,(state.stock[item.productoId]||0)-item.cantidad);});
+    saveState();renderAll();
+  });
+}
+
+// ============================================================
+// MÓDULO MOVIMIENTO ÚNICO
+// ============================================================
+let movItems=[];
+let movTipoSel=null;
+
+function selTipo(el) {
+  document.querySelectorAll('.tipo-chip').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+  movTipoSel=el.dataset.tipo;
+}
+
+function movRenderItems() {
+  const list = document.getElementById('mov-items-list');
+  if (!movItems.length) {
+    list.innerHTML = '<div style="color:#4a6080;font-size:13px;text-align:center;padding:12px;border:1px dashed #1e2530;border-radius:10px">Sin productos agregados</div>';
+    return;
+  }
+  list.innerHTML = movItems.map((item, i) => {
+    const p = getProd(item.prodId);
+    const snInputs = p && p.usaSN ? Array.from({length: item.cantidad}, (_, k) => `
+      <div class="sn-item">
+        <label>SN ${k+1}</label>
+        <input type="text" placeholder="Número de serie" value="${item.sn[k]||''}"
+          oninput="movUpdateSN(${i},${k},this.value)"
+          style="font-size:14px;padding:9px 12px"/>
+      </div>`).join('') : '';
+    return `<div style="background:#080c14;border:1px solid #1e2530;border-radius:12px;padding:14px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:24px">${p ? p.emoji : '📦'}</span>
+          <div>
+            <div style="font-weight:700;color:#fff;font-size:14px">${p ? p.nombre : item.prodId}</div>
+            <div style="font-size:11px;color:#4a6080">En stock: ${stockDe(item.prodId)}</div>
+          </div>
+        </div>
+        <button onclick="movRemoveItem(${i})" style="background:none;border:none;color:#ef4444;font-size:20px;cursor:pointer;padding:4px">🗑</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:${snInputs ? '10px' : '0'}">
+        <label style="font-size:11px;color:#4a6080;font-weight:600;white-space:nowrap">CANTIDAD</label>
+        <input type="number" min="1" value="${item.cantidad}"
+          oninput="movUpdateCant(${i},this.value)"
+          style="width:90px;font-size:16px;padding:9px 12px;text-align:center"/>
+      </div>
+      ${snInputs ? `<div class="sn-list">${snInputs}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function movAgregarItem() {
+  if(!state.productos.length){showMsg('msg-mov','Primero crea productos en la pestaña Stock','err');return;}
+  abrirSelectorProducto(prodId=>{
+    movItems.push({prodId,cantidad:1,sn:[]});
+    movRenderItems();
+  });
+}
+function movRemoveItem(i){movItems.splice(i,1);movRenderItems();}
+function movUpdateCant(i,val){movItems[i].cantidad=parseInt(val)||1;movItems[i].sn=movItems[i].sn.slice(0,movItems[i].cantidad);movRenderItems();}
+function movUpdateSN(i,k,val){movItems[i].sn[k]=val;}
+
+// Abrir movimiento desde pestaña plantas con tipo preseleccionado
+function abrirMovDesdeTab(tipo, destino) {
+  showTab('movimiento');
+  setTimeout(()=>{
+    if(tipo){const chip=document.querySelector(`.tipo-chip[data-tipo="${tipo}"]`);if(chip) selTipo(chip);}
+    if(destino){document.getElementById('mov-destino').value=destino;}
+    movItems=[];movRenderItems();
+  },100);
+}
+
+async function guardarMovimiento() {
+  if(!movTipoSel){showMsg('msg-mov','Selecciona el tipo de movimiento','err');return;}
+  if(!movItems.length){showMsg('msg-mov','Agrega al menos un producto','err');return;}
+  const destino=document.getElementById('mov-destino').value.trim();
+  if(!destino){showMsg('msg-mov','Ingresa el destino o descripción','err');return;}
+  const fechaVal=document.getElementById('mov-fecha').value;
+  const fecha=fechaVal?new Date(fechaVal+'T12:00:00').toISOString():new Date().toISOString();
+  const entrega=document.getElementById('mov-entrega').value.trim();
+  const recibe=document.getElementById('mov-recibe').value.trim();
+  const obs=document.getElementById('mov-obs').value.trim();
+  const fotoId=await leerFoto('mov-foto');
+
+  // Verificar stock
+  for(const item of movItems){
+    const qty=stockDe(item.prodId);
+    if(qty<item.cantidad){const p=getProd(item.prodId);showMsg('msg-mov',`Stock insuficiente: ${p?p.nombre:item.prodId} (hay ${qty})`,'err');return;}
+  }
+
+  const registro={id:state.nextId++,tipo:movTipoSel,fecha,destino,entrega,recibe,obs,fotoId,items:movItems.map(i=>({productoId:i.prodId,cantidad:i.cantidad,sn:[...i.sn]}))};
+  // Descontar stock en movimientos de salida
+  const esSalida=['instalacion','entrega','traspaso','traslado','baja'].includes(movTipoSel);
+  const esEntrada=['recuperacion','devolucion'].includes(movTipoSel);
+  movItems.forEach(item=>{
+    if(esSalida) state.stock[item.prodId]=Math.max(0,(state.stock[item.prodId]||0)-item.cantidad);
+    if(esEntrada) state.stock[item.prodId]=(state.stock[item.prodId]||0)+item.cantidad;
+  });
+  state.historial.push(registro);
+  saveState();renderAll();
+  // Reset
+  movItems=[];movRenderItems();
+  movTipoSel=null;document.querySelectorAll('.tipo-chip').forEach(c=>c.classList.remove('sel'));
+  document.getElementById('mov-destino').value='';
+  document.getElementById('mov-entrega').value='';
+  document.getElementById('mov-recibe').value='';
+  document.getElementById('mov-obs').value='';
+  document.getElementById('mov-fecha').value=hoyISO();
+  resetFoto('mov-foto','mov-foto-preview');
+  showMsg('msg-mov','Movimiento registrado','ok');
+  mostrarToast('Movimiento registrado',()=>{
+    state.historial.pop();
+    movItems.forEach(item=>{
+      if(esSalida) state.stock[item.prodId]=(state.stock[item.prodId]||0)+item.cantidad;
+      if(esEntrada) state.stock[item.prodId]=Math.max(0,(state.stock[item.prodId]||0)-item.cantidad);
+    });
+    saveState();renderAll();
+  });
+}
+
+// ============================================================
+// SELECTOR DE PRODUCTO (modal estático reutilizable)
+// ============================================================
+let _selectorCallback = null;
+
+function abrirSelectorProducto(cb) {
+  _selectorCallback = cb;
+  document.getElementById('sel-prod-busq').value = '';
+  renderSelectorProductos();
+  document.getElementById('modal-selector-prod').classList.add('open');
+}
+
+function renderSelectorProductos() {
+  const q = (document.getElementById('sel-prod-busq').value || '').toLowerCase();
+  const lista = document.getElementById('sel-prod-lista');
+  const prods = state.productos.filter(p =>
+    !q || p.nombre.toLowerCase().includes(q) || p.categoria.toLowerCase().includes(q)
+  );
+  if (!prods.length) {
+    lista.innerHTML = '<div style="color:#4a6080;text-align:center;padding:20px">No hay productos. Crea uno primero en la pestaña Stock.</div>';
+    return;
+  }
+  // Agrupar por categoría
+  const grupos = {};
+  prods.forEach(p => { if (!grupos[p.categoria]) grupos[p.categoria] = []; grupos[p.categoria].push(p); });
+  lista.innerHTML = Object.entries(grupos).sort(([a],[b]) => a.localeCompare(b)).map(([cat, items]) => `
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:#4a6080;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">${cat}</div>
+      ${items.map(p => `
+        <div data-id="${p.id}" onclick="seleccionarProducto('${p.id}')"
+          style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #1e2530;border-radius:12px;margin-bottom:6px;cursor:pointer;background:#080c14;transition:border-color .15s"
+          onmouseover="this.style.borderColor='#3b82f6'" onmouseout="this.style.borderColor='#1e2530'">
+          <span style="font-size:24px">${p.emoji}</span>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:600;color:#fff">${p.nombre}</div>
+            <div style="font-size:12px;color:#4a6080;margin-top:2px">${p.usaSN ? '🔢 Usa N/S' : 'Sin N/S'} · ${stockDe(p.id)} en stock</div>
+          </div>
+          <span style="color:#60a5fa;font-size:18px">›</span>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+function seleccionarProducto(id) {
+  document.getElementById('modal-selector-prod').classList.remove('open');
+  if (_selectorCallback) { _selectorCallback(id); _selectorCallback = null; }
+}
+
+// ============================================================
+// HISTORIAL
+// ============================================================
+function renderHistorial() {
+  const q=(document.getElementById('hist-q').value||'').toLowerCase();
+  const tipo=document.getElementById('hist-tipo').value;
+  const desde=document.getElementById('hist-desde').value;
+  const hasta=document.getElementById('hist-hasta').value;
+  const rows=[...state.historial].reverse().filter(r=>{
+    const txt=(r.destino||'')+(r.entrega||'')+(r.recibe||'')+(r.obs||'')+(r.items||[]).map(i=>getProdNombre(i.productoId)+(i.sn||[]).join(' ')).join(' ');
+    const matchQ=!q||txt.toLowerCase().includes(q);
+    const matchT=!tipo||r.tipo===tipo||(tipo==='stock'&&r.tipo==='ENTRADA')||(tipo!=='stock'&&r.tipo==='SALIDA'&&tipo==='instalacion');
+    const fecha=new Date(r.fecha);
+    const matchD=!desde||fecha>=new Date(desde);
+    const matchH=!hasta||fecha<=new Date(hasta+'T23:59:59');
+    return matchQ&&matchT&&matchD&&matchH;
+  });
+  const tb=document.getElementById('tabla-historial');
+  if(!rows.length){tb.innerHTML='<div style="color:#555;text-align:center;padding:32px">Sin resultados</div>';return;}
+  tb.innerHTML=rows.map(r=>{
+    const tipo=TIPOS_MOV[r.tipo]||{label:r.tipo||'?',color:'#aaa'};
+    const itemsStr=(r.items||[]).map(i=>`${getProdEmoji(i.productoId)} ${getProdNombre(i.productoId)} ×${i.cantidad}${i.sn?.length?' (SN: '+i.sn.filter(Boolean).join(', ')+')':''}`).join(' · ');
+    return `<div class="mov-item">
+      <div class="mov-left">
+        <div class="mov-mat" style="font-size:13px">${itemsStr||'—'}</div>
+        ${r.destino?`<div class="mov-nota">${r.destino}</div>`:''}
+        ${r.obs&&r.obs!==r.destino?`<div class="mov-nota">${r.obs}</div>`:''}
+        <div class="mov-meta">
+          <span class="mov-fecha">${fmtFecha(r.fecha)}</span>
+          ${r.entrega?`<span class="mov-tec">👤 ${r.entrega}</span>`:''}
+          ${r.recibe?`<span class="mov-tec">→ ${r.recibe}</span>`:''}
+        </div>
+        ${r.fotoId?`<img data-foto-id="${r.fotoId}" class="foto-thumb foto-lazy" style="margin-top:8px" onclick="verFoto('${r.fotoId}')" />`:''}
+      </div>
+      <div class="mov-right">
+        <span class="badge badge-${r.tipo}" style="color:${tipo.color};border-color:${tipo.color}33;background:${tipo.color}11">${tipo.label}</span>
+        <button class="btn-del" onclick="eliminarRegistro(${r.id})">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+  cargarFotosLazy();
+}
+
+async function cargarFotosLazy(){
+  const imgs=document.querySelectorAll('.foto-lazy[data-foto-id]');
+  for(const img of imgs){const url=await obtenerFotoDB(img.dataset.fotoId);if(url)img.src=url;else img.style.display='none';}
+}
+async function verFoto(fotoId){
+  const url=await obtenerFotoDB(fotoId);if(!url) return;
+  const o=document.createElement('div');o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px';
+  o.innerHTML=`<img src="${url}" style="max-width:95vw;max-height:80vh;border-radius:12px;object-fit:contain"/><button style="background:#222;border:1px solid #333;color:#ccc;padding:10px 24px;border-radius:99px;font-size:14px;cursor:pointer" onclick="this.parentElement.remove()">Cerrar</button>`;
+  o.onclick=e=>{if(e.target===o)o.remove();};document.body.appendChild(o);
+}
+
+// ============================================================
+// ELIMINAR REGISTRO DE HISTORIAL
+// ============================================================
+function eliminarRegistro(id) {
+  const reg=state.historial.find(r=>r.id===id);if(!reg) return;
+  const esSalida=['instalacion','entrega','traspaso','traslado','baja'].includes(reg.tipo)||reg.tipo==='SALIDA';
+  const esEntrada=reg.tipo==='stock'||reg.tipo==='ENTRADA'||['recuperacion','devolucion'].includes(reg.tipo);
+  abrirModal('¿Eliminar registro?','¿Deseas también revertir el stock asociado?',[
+    {cls:'btn-success',label:'✓ Sí, revertir stock',action:()=>{
+      (reg.items||[]).forEach(item=>{
+        if(esSalida) state.stock[item.productoId]=(state.stock[item.productoId]||0)+item.cantidad;
+        if(esEntrada) state.stock[item.productoId]=Math.max(0,(state.stock[item.productoId]||0)-item.cantidad);
+      });
+      state.historial=state.historial.filter(r=>r.id!==id);
+      saveState();renderAll();
+      mostrarToast('Registro eliminado',()=>{state.historial.push(reg);(reg.items||[]).forEach(item=>{if(esSalida)state.stock[item.productoId]=Math.max(0,(state.stock[item.productoId]||0)-item.cantidad);if(esEntrada)state.stock[item.productoId]=(state.stock[item.productoId]||0)+item.cantidad;});saveState();renderAll();},()=>{if(reg.fotoId)borrarFotoDB(reg.fotoId);});
+    }},
+    {cls:'btn-danger',label:'✕ No, solo eliminar',action:()=>{
+      state.historial=state.historial.filter(r=>r.id!==id);
+      saveState();renderHistorial();
+      mostrarToast('Registro eliminado',()=>{state.historial.push(reg);saveState();renderHistorial();},()=>{if(reg.fotoId)borrarFotoDB(reg.fotoId);});
+    }}
+  ]);
+}
+
+// ============================================================
+// PLANTAS
+// ============================================================
+function renderPlantas() {
+  const q=(document.getElementById('plantas-q').value||'').toLowerCase();
+  const instalaciones=state.historial.filter(r=>r.tipo==='instalacion'||(r.tipo==='SALIDA'&&r.destino));
+  const grupos={};
+  instalaciones.forEach(r=>{
+    if(!r.destino) return;
+    const k=r.destino;
+    if(!grupos[k]) grupos[k]=[];
+    (r.items||[]).forEach(item=>grupos[k].push({...item,fecha:r.fecha,entrega:r.entrega,regId:r.id}));
+  });
+  const filtrados=Object.entries(grupos).filter(([planta,items])=>{
+    if(!q) return true;
+    return planta.toLowerCase().includes(q)||items.some(i=>getProdNombre(i.productoId).toLowerCase().includes(q));
+  });
+  const tb=document.getElementById('tabla-plantas');
+  if(!filtrados.length){tb.innerHTML='<div style="color:#555;text-align:center;padding:32px">No hay instalaciones registradas</div>';return;}
+  tb.innerHTML=filtrados.sort(([a],[b])=>a.localeCompare(b)).map(([planta,items])=>`
+    <div class="inst-group">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="inst-planta-title">🌵 ${planta}</div>
+        <button onclick="abrirMovDesdeTab('instalacion','${planta.replace(/'/g,"\\'")}')" style="background:#065f46;border:none;color:#4ade80;padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer">+ Agregar</button>
+      </div>
+      ${items.map(item=>`
+        <div class="inst-row">
+          <div><div style="font-size:13px;color:#ccc;font-weight:500">${getProdEmoji(item.productoId)} ${getProdNombre(item.productoId)} · ${item.cantidad}</div>
+          ${item.sn?.filter(Boolean).length?`<div style="font-size:11px;color:#555">N/S: ${item.sn.filter(Boolean).join(', ')}</div>`:''}
+          <div style="font-size:11px;color:#444">${fmtFecha(item.fecha)}${item.entrega?' · '+item.entrega:''}</div></div>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+// ============================================================
+// RESUMEN SEMANA
+// ============================================================
+function renderStats() {
+  if (!document.getElementById('stats-resumen')) return;
+
+  // ── 1. RESUMEN GENERAL ──────────────────────────────────
+  const ahora = new Date();
+  const ini30 = new Date(); ini30.setDate(ini30.getDate()-30);
+  const movMes = state.historial.filter(r => new Date(r.fecha) >= ini30);
+  const totalProductos = state.productos.length;
+  const totalUnidades = Object.values(state.stock).reduce((a,b)=>a+b,0);
+  const plantasActivas = [...new Set(
+    state.historial.filter(r=>r.tipo==='instalacion'&&r.destino).map(r=>r.destino)
+  )].length;
+  const movimientosMes = movMes.length;
+
+  const kpis = [
+    {icon:'📦', val:totalProductos,  label:'Productos',       bg:'#0f2744', color:'#60a5fa', accion:'productos'},
+    {icon:'🔢', val:totalUnidades,   label:'Unidades stock',  bg:'#0f2a1a', color:'#34d399', accion:'unidades'},
+    {icon:'🌵', val:plantasActivas,  label:'Plantas activas', bg:'#1a2a0f', color:'#86efac', accion:'plantas'},
+    {icon:'↕️', val:movimientosMes,  label:'Movim. 30 días',  bg:'#2a1f00', color:'#fbbf24', accion:'movimientos'},
+  ];
+  document.getElementById('stats-resumen').innerHTML = kpis.map(k=>`
+    <div class="stat-kpi" style="background:${k.bg};border:1px solid ${k.color}22;cursor:pointer;transition:transform .1s;active:scale(.97)"
+      onclick="abrirDetalleKPI('${k.accion}')"
+      onmousedown="this.style.transform='scale(.97)'" onmouseup="this.style.transform=''">
+      <span class="kpi-icon">${k.icon}</span>
+      <span class="kpi-val" style="color:${k.color}">${k.val}</span>
+      <span class="kpi-label" style="color:${k.color}">${k.label}</span>
+      <span style="font-size:10px;color:${k.color};opacity:.5;margin-top:2px">Ver detalle ›</span>
+    </div>`).join('');
+
+  // ── 2. TOP 5 PRODUCTOS MÁS MOVIDOS (30 días) ────────────
+  const conteo = {};
+  movMes.forEach(r => (r.items||[]).forEach(i => {
+    conteo[i.productoId] = (conteo[i.productoId]||0) + i.cantidad;
+  }));
+  const top5 = Object.entries(conteo)
+    .sort(([,a],[,b]) => b-a)
+    .slice(0, 5);
+  const maxVal = top5.length ? top5[0][1] : 1;
+
+  const topEl = document.getElementById('stats-top');
+  if (!top5.length) {
+    topEl.innerHTML = '<div style="color:#4a6080;text-align:center;padding:16px">Sin movimientos en los últimos 30 días</div>';
+  } else {
+    topEl.innerHTML = top5.map(([id, qty], i) => {
+      const p = getProd(id);
+      const paleta = p ? colorParaCategoria(p.categoria) : {color:'#60a5fa'};
+      const pct = Math.round((qty/maxVal)*100);
+      return `<div class="top-item">
+        <span style="font-size:20px;flex-shrink:0">${getProdEmoji(id)}</span>
+        <div class="top-bar-wrap">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <span style="font-size:13px;font-weight:600;color:#fff">${getProdNombre(id)}</span>
+            <span style="font-size:13px;font-weight:700;color:${paleta.color}">${qty} uds</span>
+          </div>
+          <div class="top-bar-bg">
+            <div class="top-bar-fill" style="width:${pct}%;background:${paleta.color}"></div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── 3. STOCK CRÍTICO ────────────────────────────────────
+  // Productos en 0 o con stockMin configurado y por debajo
+  const criticos = state.productos.filter(p => {
+    const q = stockDe(p.id);
+    if (q === 0) return true;
+    if (p.stockMin !== undefined && q <= p.stockMin) return true;
+    return false;
+  }).sort((a,b) => stockDe(a.id) - stockDe(b.id));
+
+  const criticoEl = document.getElementById('stats-critico');
+  if (!criticos.length) {
+    criticoEl.innerHTML = '<div style="color:#34d399;text-align:center;padding:16px;font-size:13px">✓ Todo el stock está en niveles normales</div>';
+  } else {
+    criticoEl.innerHTML = criticos.map(p => {
+      const qty = stockDe(p.id);
+      const color = qty === 0 ? '#f87171' : '#f59e0b';
+      const label = qty === 0 ? 'Sin stock' : `${qty} uds`;
+      return `<div class="critico-item">
+        <div style="display:flex;align-items:center;gap:10px;flex:1">
+          <span style="font-size:22px">${p.emoji}</span>
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#fff">${p.nombre}</div>
+            <div style="font-size:11px;color:#4a6080">${p.categoria}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:13px;font-weight:700;color:${color}">${label}</span>
+          <button onclick="cerrarFab();showTab('addstock')" style="background:#1d4ed8;border:none;color:#fff;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">+ Ingresar</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+}
+
+// Mantener renderResumenSemana como alias por compatibilidad
+function renderResumenSemana() { renderStats(); }
+
+
+// ============================================================
+// DETALLE DE KPI (modal al tocar tarjeta de stats)
+// ============================================================
+function abrirDetalleKPI(accion) {
+  const titulo = document.getElementById('kpi-modal-titulo');
+  const cuerpo = document.getElementById('kpi-modal-cuerpo');
+
+  if (accion === 'productos') {
+    titulo.textContent = '📦 Todos los productos';
+    if (!state.productos.length) {
+      cuerpo.innerHTML = '<div style="color:#4a6080;text-align:center;padding:20px">Sin productos</div>';
+    } else {
+      // Agrupar por categoría
+      const grupos = {};
+      state.productos.forEach(p => { if (!grupos[p.categoria]) grupos[p.categoria]=[]; grupos[p.categoria].push(p); });
+      cuerpo.innerHTML = Object.entries(grupos).sort(([a],[b])=>a.localeCompare(b)).map(([cat,prods]) => {
+        const paleta = colorParaCategoria(cat);
+        return `<div style="margin-bottom:16px">
+          <div style="font-size:11px;font-weight:700;color:${paleta.color};text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">${cat}</div>
+          ${prods.map(p => {
+            const q = stockDe(p.id);
+            const color = q===0?'#555':q<=2?'#f59e0b':'#34d399';
+            return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #111827">
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="font-size:22px">${p.emoji}</span>
+                <div>
+                  <div style="font-size:14px;font-weight:600;color:#fff">${p.nombre}</div>
+                  <div style="font-size:11px;color:#4a6080">${p.usaSN?'Usa N/S':'Sin N/S'}</div>
+                </div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:20px;font-weight:800;color:${color}">${q}</div>
+                <div style="font-size:10px;color:#4a6080">uds</div>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>`;
+      }).join('');
+    }
+
+  } else if (accion === 'unidades') {
+    titulo.textContent = '🔢 Stock por producto';
+    const prods = [...state.productos].sort((a,b) => stockDe(b.id)-stockDe(a.id));
+    if (!prods.length) {
+      cuerpo.innerHTML = '<div style="color:#4a6080;text-align:center;padding:20px">Sin productos</div>';
+    } else {
+      const max = stockDe(prods[0].id) || 1;
+      cuerpo.innerHTML = prods.map(p => {
+        const q = stockDe(p.id);
+        const paleta = colorParaCategoria(p.categoria);
+        const pct = Math.round((q/max)*100);
+        return `<div style="padding:10px 0;border-bottom:1px solid #111827">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:18px">${p.emoji}</span>
+              <span style="font-size:13px;font-weight:600;color:#fff">${p.nombre}</span>
+            </div>
+            <span style="font-size:15px;font-weight:800;color:${q===0?'#555':paleta.color}">${q}</span>
+          </div>
+          <div style="background:#111827;border-radius:99px;height:5px;overflow:hidden">
+            <div style="width:${pct}%;height:5px;border-radius:99px;background:${q===0?'#333':paleta.color};transition:width .3s"></div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+  } else if (accion === 'plantas') {
+    titulo.textContent = '🌵 Plantas activas';
+    const instalaciones = state.historial.filter(r => r.tipo==='instalacion' && r.destino);
+    const plantasMap = {};
+    instalaciones.forEach(r => {
+      if (!plantasMap[r.destino]) plantasMap[r.destino] = {items:[], ultima:r.fecha};
+      (r.items||[]).forEach(i => plantasMap[r.destino].items.push(i));
+      if (r.fecha > plantasMap[r.destino].ultima) plantasMap[r.destino].ultima = r.fecha;
+    });
+    const plantas = Object.entries(plantasMap).sort(([a],[b])=>a.localeCompare(b));
+    if (!plantas.length) {
+      cuerpo.innerHTML = '<div style="color:#4a6080;text-align:center;padding:20px">Sin plantas registradas</div>';
+    } else {
+      cuerpo.innerHTML = plantas.map(([planta, data]) => {
+        const totalUds = data.items.reduce((s,i)=>s+i.cantidad,0);
+        const prods = [...new Set(data.items.map(i=>i.productoId))];
+        return `<div style="padding:12px 0;border-bottom:1px solid #111827">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div style="font-size:14px;font-weight:700;color:#fff">🌵 ${planta}</div>
+              <div style="font-size:12px;color:#4a6080;margin-top:3px">${prods.map(id=>getProdEmoji(id)+' '+getProdNombre(id)).join(', ')}</div>
+              <div style="font-size:11px;color:#3d4f63;margin-top:2px">Última: ${fmtFecha(data.ultima)}</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0">
+              <div style="font-size:18px;font-weight:800;color:#86efac">${totalUds}</div>
+              <div style="font-size:10px;color:#4a6080">uds instaladas</div>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+  } else if (accion === 'movimientos') {
+    titulo.textContent = '↕️ Movimientos últimos 30 días';
+    const ini30 = new Date(); ini30.setDate(ini30.getDate()-30);
+    const movMes = [...state.historial].filter(r=>new Date(r.fecha)>=ini30).reverse();
+    if (!movMes.length) {
+      cuerpo.innerHTML = '<div style="color:#4a6080;text-align:center;padding:20px">Sin movimientos en los últimos 30 días</div>';
+    } else {
+      cuerpo.innerHTML = movMes.map(r => {
+        const tipo = TIPOS_MOV[r.tipo]||{label:r.tipo,color:'#aaa'};
+        const itemsStr = (r.items||[]).map(i=>`${getProdEmoji(i.productoId)} ${getProdNombre(i.productoId)} ×${i.cantidad}`).join(', ');
+        return `<div style="padding:10px 0;border-bottom:1px solid #111827">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${itemsStr}</div>
+              ${r.destino?`<div style="font-size:12px;color:#4a6080;margin-top:2px">${r.destino}</div>`:''}
+              <div style="font-size:11px;color:#3d4f63;margin-top:2px">${fmtFecha(r.fecha)}</div>
+            </div>
+            <span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:99px;background:${tipo.color}11;color:${tipo.color};border:1px solid ${tipo.color}33;white-space:nowrap;flex-shrink:0">${tipo.label}</span>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  document.getElementById('modal-kpi').classList.add('open');
+}
+
+// ============================================================
+// MODAL CONFIRMACIÓN
+// ============================================================
+function cerrarModal(){document.getElementById('modal-overlay').classList.remove('open');}
+function abrirModal(titulo,texto,btns){
+  document.getElementById('modal-titulo').textContent=titulo;
+  document.getElementById('modal-texto').textContent=texto;
+  const c=document.getElementById('modal-btns');c.innerHTML='';
+  btns.forEach(b=>{const el=document.createElement('button');el.className='btn '+b.cls;el.textContent=b.label;el.onclick=()=>{cerrarModal();b.action();};c.appendChild(el);});
+  const can=document.createElement('button');can.className='btn btn-ghost';can.textContent='Cancelar';can.onclick=cerrarModal;c.appendChild(can);
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+// ============================================================
+// TOAST DESHACER
+// ============================================================
+let _undoAction=null,_undoExpire=null,_undoTimer=null;
+function mostrarToast(msg,accion,onExpire){
+  _undoAction=accion;_undoExpire=onExpire||null;
+  document.getElementById('toast-msg').textContent=msg;
+  const t=document.getElementById('toast-undo');t.classList.add('show');
+  if(_undoTimer)clearTimeout(_undoTimer);
+  _undoTimer=setTimeout(()=>{t.classList.remove('show');_undoAction=null;if(_undoExpire){_undoExpire();_undoExpire=null;}},6000);
+}
+function deshacerEliminacion(){
+  if(!_undoAction)return;_undoAction();_undoAction=null;_undoExpire=null;
+  clearTimeout(_undoTimer);document.getElementById('toast-undo').classList.remove('show');
+  renderAll();showMsg('msg-global','Acción deshecha','ok');
+}
+
+// ============================================================
+// EXPORTAR / IMPORTAR
+// ============================================================
+function exportarRespaldo(){
+  const fecha=hoyISO();
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));a.download=`solarstock_respaldo_${fecha}.json`;a.click();
+}
+function importarRespaldo(input){
+  const file=input.files[0];if(!file)return;
+  const r=new FileReader();r.onload=e=>{
+    try{const datos=JSON.parse(e.target.result);
+      if(!datos.historial&&!datos.stock&&!datos.productos){showMsg('msg-restaurar','Archivo inválido','err');return;}
+      abrirModal('¿Restaurar respaldo?','Esto reemplazará todos los datos actuales.',[{cls:'btn-success',label:'✓ Sí, restaurar',action:()=>{
+        state=datos;if(!state.productos)state.productos=[];if(!state.categorias)state.categorias=[];if(!state.stock)state.stock={};if(!state.historial)state.historial=[];if(!state.nextId)state.nextId=1;
+        saveState();renderAll();migrarFotosViejas();showMsg('msg-restaurar','Respaldo restaurado','ok');input.value='';
+      }}]);
+    }catch(e){showMsg('msg-restaurar','Error al leer el archivo','err');}
+  };r.readAsText(file);
+}
+
+function descargarStockCSV(){
+  const rows=[['Producto','Categoría','Stock'],...state.productos.map(p=>[p.nombre,p.categoria,stockDe(p.id)])];
+  _descargarCSV(rows,'solarstock_stock.csv');
+}
+function descargarHistorialCSV(){
+  const rows=[['Fecha','Tipo','Destino','Entrega','Recibe','Productos','Observación'],...state.historial.map(r=>[fmtFecha(r.fecha),(TIPOS_MOV[r.tipo]||{label:r.tipo}).label,r.destino||'',r.entrega||'',r.recibe||'',(r.items||[]).map(i=>getProdNombre(i.productoId)+' x'+i.cantidad).join(' | '),r.obs||''])];
+  _descargarCSV(rows,'solarstock_historial.csv');
+}
+function descargarInstalacionesCSV(){
+  const inst=state.historial.filter(r=>r.tipo==='instalacion');
+  const rows=[['Planta','Producto','Cantidad','N/S','Fecha','Técnico'],...inst.flatMap(r=>(r.items||[]).map(i=>[r.destino||'',getProdNombre(i.productoId),i.cantidad,(i.sn||[]).filter(Boolean).join(', '),fmtFecha(r.fecha),r.entrega||'']))];
+  _descargarCSV(rows,'solarstock_instalaciones.csv');
+}
+function _descargarCSV(rows,nombre){
+  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv'}));a.download=nombre;a.click();
+}
+function descargarPDF(){
+  const w=window.open('','_blank');const fecha=new Date().toLocaleDateString('es-CL');
+  const sRows=state.productos.map(p=>`<tr><td>${p.emoji} ${p.nombre}</td><td>${p.categoria}</td><td>${stockDe(p.id)}</td></tr>`).join('');
+  const hRows=[...state.historial].reverse().map(r=>`<tr><td>${fmtFecha(r.fecha)}</td><td>${(TIPOS_MOV[r.tipo]||{label:r.tipo}).label}</td><td>${r.destino||''}</td><td>${(r.items||[]).map(i=>getProdNombre(i.productoId)+' x'+i.cantidad).join(', ')}</td><td>${r.entrega||''}</td><td>${r.obs||''}</td></tr>`).join('');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>SolarStock</title><style>body{font-family:Arial,sans-serif;padding:24px}h2{font-size:14px;margin:20px 0 8px;border-bottom:1px solid #ddd}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#f0f0f0;text-align:left;padding:6px 8px;border:1px solid #ccc}td{padding:5px 8px;border:1px solid #ddd}tr:nth-child(even){background:#fafafa}</style></head><body><h1>⚡ SolarStock — ${fecha}</h1><h2>Stock</h2><table><tr><th>Producto</th><th>Categoría</th><th>Stock</th></tr>${sRows}</table><h2>Historial</h2><table><tr><th>Fecha</th><th>Tipo</th><th>Destino</th><th>Productos</th><th>Técnico</th><th>Obs.</th></tr>${hRows}</table><script>window.onload=()=>window.print()<\/script></body></html>`);
+  w.document.close();
+}
+
+// ============================================================
+// RESETEAR APP
+// ============================================================
+function resetearApp(){
+  abrirModal('¿Borrar todo?','Se eliminarán todos los datos. Esta acción no se puede deshacer.',[{cls:'btn-danger',label:'🗑 Sí, borrar todo',action:()=>{
+    localStorage.removeItem(STORAGE_KEY);state=estadoVacio();saveState();renderAll();mostrarBienvenida();showMsg('msg-global','Aplicación reiniciada','ok');
+  }}]);
+}
+
+// ============================================================
+// BIENVENIDA
+// ============================================================
+function mostrarBienvenida(){document.getElementById('modal-bienvenida').classList.add('open');}
+function cerrarBienvenida(){document.getElementById('modal-bienvenida').classList.remove('open');}
+function bienvenidaVacio(){cerrarBienvenida();showMsg('msg-global','¡Listo! Crea tu primer producto desde la pestaña Stock.','ok');}
+function bienvenidaImportar(){document.getElementById('bv-csv').click();}
+function bienvenidaRestaurar(){document.getElementById('bv-json').click();}
+function bienvenidaProcesarJSON(input){importarRespaldo(input);cerrarBienvenida();}
+function bienvenidaProcesarCSV(input){
+  const file=input.files[0];if(!file)return;
+  const r=new FileReader();r.onload=e=>{
+    try{
+      const lines=e.target.result.split('\n').filter(l=>l.trim());
+      if(lines.length<2){showMsg('msg-bienvenida','Archivo vacío','err');return;}
+      const headers=lines[0].split(',').map(h=>h.replace(/"/g,'').trim().toLowerCase());
+      const cNombre=headers.findIndex(h=>['nombre','material','producto','name'].includes(h));
+      const cCat=headers.findIndex(h=>['categoria','category','tipo'].includes(h));
+      const cEmoji=headers.findIndex(h=>['emoji','icono'].includes(h));
+      if(cNombre<0){showMsg('msg-bienvenida','No se encontró columna "Nombre"','err');return;}
+      let imp=0;
+      lines.slice(1).forEach(line=>{
+        const cols=line.split(',').map(c=>c.replace(/"/g,'').trim());
+        const nombre=cols[cNombre]?.trim();if(!nombre)return;
+        const cat=cCat>=0?cols[cCat]||'General':'General';
+        const emoji=cEmoji>=0?cols[cEmoji]||'📦':'📦';
+        const id='p_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+        if(!state.productos.find(p=>p.nombre.toLowerCase()===nombre.toLowerCase())){
+          state.productos.push({id,nombre,categoria:cat,emoji,usaSN:false});
+          state.stock[id]=0;agregarCategoria(cat);imp++;
+        }
+      });
+      saveState();renderAll();cerrarBienvenida();
+      showMsg('msg-global',`${imp} productos importados`,'ok');
+    }catch(err){showMsg('msg-bienvenida','Error al procesar: '+err.message,'err');}
+  };r.readAsText(file);
+}
+
+// ============================================================
+// FAB
+// ============================================================
+function toggleFab(){const m=document.getElementById('fab-menu'),o=document.getElementById('fab-overlay');const open=m.classList.toggle('open');o.classList.toggle('open',open);document.getElementById('fab-btn').textContent=open?'✕':'+';}
+function cerrarFab(){document.getElementById('fab-menu').classList.remove('open');document.getElementById('fab-overlay').classList.remove('open');document.getElementById('fab-btn').textContent='+';}
+
+// ============================================================
+// NAVEGACIÓN
+// ============================================================
+function showTab(name){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  const sec = document.getElementById('tab-'+name);
+  if (sec) sec.classList.add('active');
+  // addstock y movimiento no tienen nav-btn propio, no marcar nada
+  const navBtn = document.getElementById('nav-'+name);
+  if (navBtn) navBtn.classList.add('active');
+  document.querySelector('.content').scrollTop=0;
+  cerrarFab();
+  // Refrescar stats al entrar
+  if (name === 'stats') renderStats();
+}
+function showInnerTab(name){
+  const tabs={plantas:['plantas-ver','plantas-add']};
+  const all=Object.values(tabs).flat();
+  all.forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
+  const el=document.getElementById(name);if(el)el.style.display='block';
+  document.querySelectorAll('.inner-tab').forEach((t,i)=>{
+    const grupo=Object.values(tabs).find(g=>g.includes(name));
+    if(grupo)t.classList.toggle('active',grupo[i]===name);
+  });
+}
+
+// ============================================================
+// INIT
+// ============================================================
+loadState();
+</script>
+</body>
+</html>
